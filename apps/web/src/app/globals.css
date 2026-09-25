@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 :root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+}
+
+.dark {
   --background: #090d16;
   --foreground: #f3f4f6;
+  --card-bg: #0d1322;
+  --card-border: #1f293d;
 }
 
 body {
@@ -12,15 +21,16 @@ body {
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Custom Sports Betting Glow & Gradients */
+/* Custom sports betting glowing borders */
 .glow-emerald {
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.22);
 }
 
 .glow-gold {
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.22);
 }
 
 /* Data-saver mode overrides */
@@ -30,18 +40,24 @@ body.data-saver * {
   box-shadow: none !important;
 }
 
-/* Clean custom scrollbar */
+/* Clean responsive scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: #94a3b8;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }

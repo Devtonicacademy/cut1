@@ -97,12 +97,33 @@ class PredictionDetail(BaseModel):
     recommended_safe_pick: str = ""
     recommended_safe_odds: float = 1.20
 
+class HeadToHeadMatch(BaseModel):
+    date: str
+    competition: str
+    home_team: str
+    away_team: str
+    home_score: int
+    away_score: int
+    winner: str # "home", "away", or "draw"
+
+class HeadToHeadStats(BaseModel):
+    total_meetings: int
+    home_team_wins: int
+    draws: int
+    away_team_wins: int
+    home_goals_total: int
+    away_goals_total: int
+    last_matches: List[HeadToHeadMatch] = []
+    summary: str = ""
+
 class Fixture(BaseModel):
     id: str
     home_team: Team
     away_team: Team
     league: str
     kickoff: str
+    match_date: Optional[str] = None
+    match_time: Optional[str] = None
     venue: str
     sportybet_odds: BookmakerOdds
     bet9ja_odds: BookmakerOdds
@@ -110,6 +131,7 @@ class Fixture(BaseModel):
     actual_home_score: Optional[int] = None
     actual_away_score: Optional[int] = None
     prediction: Optional[PredictionDetail] = None
+    h2h: Optional[HeadToHeadStats] = None
 
 class BankrollRequest(BaseModel):
     bankroll_ngn: float = Field(..., gt=0, description="Total user betting capital in Naira")

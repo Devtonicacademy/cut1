@@ -54,20 +54,20 @@ export default function AdminBroadcastModal({ onClose, onBroadcastSuccess }: Adm
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-[#0b101c] border border-gold-500/40 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white dark:bg-[#0b101c] border border-slate-200 dark:border-amber-500/40 w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-gold-950/60 to-gray-900 border-b border-gray-800 flex justify-between items-center">
+        <div className="p-4 bg-slate-50 dark:bg-gradient-to-r dark:from-amber-950/60 dark:to-gray-900 border-b border-slate-200 dark:border-gray-800 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-gold-500/20 text-gold-400">
-              <Radio className="w-4 h-4 text-gold-400" />
+            <span className="p-1.5 rounded-lg bg-amber-100 text-amber-800 dark:bg-gold-500/20 dark:text-gold-400">
+              <Radio className="w-4 h-4 text-amber-600 dark:text-gold-400" />
             </span>
             <div>
-              <h3 className="font-extrabold text-sm sm:text-base text-white">Admin Super-Broadcaster</h3>
-              <p className="text-[11px] text-gray-400">Blast booking codes simultaneously across Lagos</p>
+              <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white">Admin Super-Broadcaster</h3>
+              <p className="text-[11px] text-slate-500 dark:text-gray-400">Blast booking codes simultaneously across Lagos</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:text-gray-400 dark:hover:text-white p-1">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -76,89 +76,91 @@ export default function AdminBroadcastModal({ onClose, onBroadcastSuccess }: Adm
         <form onSubmit={handleBroadcast} className="p-4 space-y-4 text-xs">
           {sent ? (
             <div className="text-center py-8 space-y-2">
-              <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
-              <h4 className="text-base font-extrabold text-white">Broadcast Successfully Dispatched!</h4>
-              <p className="text-gray-400 text-xs">
+              <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto animate-bounce" />
+              <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Broadcast Dispatched!</h4>
+              <p className="text-slate-500 dark:text-gray-400 text-xs">
                 Sent to Telegram VIP Channel, Web PWA subscribers, and WhatsApp community.
               </p>
             </div>
           ) : (
             <>
               <div>
-                <label className="font-bold text-gray-300 block mb-1">Broadcast Headline:</label>
+                <label className="font-bold text-slate-700 dark:text-gray-300 block mb-1">Broadcast Headline:</label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-medium focus:border-gold-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium focus:border-amber-500 focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="font-bold text-gray-300 block mb-1">Message Body:</label>
+                <label className="font-bold text-slate-700 dark:text-gray-300 block mb-1">Message Body:</label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   rows={2}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white font-medium focus:border-gold-500 focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-medium focus:border-amber-500 focus:outline-none"
                   required
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-red-400 block mb-1">SportyBet Booking Code:</label>
+                  <label className="font-bold text-slate-700 dark:text-gray-300 block mb-1">SportyBet Code:</label>
                   <input
                     type="text"
                     value={sportybetCode}
                     onChange={(e) => setSportybetCode(e.target.value)}
-                    className="w-full bg-gray-900 border border-red-500/40 rounded-lg px-3 py-2 text-white font-mono font-bold uppercase focus:border-red-400 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-mono font-bold focus:border-amber-500 focus:outline-none"
                     required
                   />
                 </div>
-
                 <div>
-                  <label className="font-bold text-green-400 block mb-1">Bet9ja Booking Code:</label>
+                  <label className="font-bold text-slate-700 dark:text-gray-300 block mb-1">Bet9ja Code:</label>
                   <input
                     type="text"
                     value={bet9jaCode}
                     onChange={(e) => setBet9jaCode(e.target.value)}
-                    className="w-full bg-gray-900 border border-green-500/40 rounded-lg px-3 py-2 text-white font-mono font-bold uppercase focus:border-green-400 focus:outline-none"
+                    className="w-full bg-slate-50 dark:bg-gray-900 border border-slate-300 dark:border-gray-700 rounded-lg px-3 py-2 text-slate-900 dark:text-white font-mono font-bold focus:border-amber-500 focus:outline-none"
                     required
                   />
                 </div>
               </div>
 
-              {/* Channels checkboxes */}
-              <div className="bg-gray-900/60 p-3 rounded-xl border border-gray-800 space-y-2">
-                <span className="font-bold text-gray-400 block text-[11px] uppercase">
-                  Target Broadcast Channels:
-                </span>
-                <div className="grid grid-cols-3 gap-2 text-[11px]">
-                  <div className="flex items-center gap-1.5 text-gray-200">
-                    <input type="checkbox" defaultChecked className="accent-gold-500" />
-                    <span>Telegram VIP (12.5k)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-gray-200">
-                    <input type="checkbox" defaultChecked className="accent-gold-500" />
-                    <span>Web PWA Push (4.2k)</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-gray-200">
-                    <input type="checkbox" defaultChecked className="accent-gold-500" />
-                    <span>WhatsApp Status</span>
-                  </div>
+              <div className="p-3 bg-slate-50 dark:bg-gray-900/60 rounded-xl border border-slate-200 dark:border-gray-800 space-y-1 text-slate-600 dark:text-gray-400">
+                <span className="font-bold text-slate-800 dark:text-gray-300 block text-[11px]">Multi-Channel Routing:</span>
+                <div className="flex items-center gap-3 text-[11px] pt-1">
+                  <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Web PWA Push
+                  </span>
+                  <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> VIP Telegram
+                  </span>
+                  <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5" /> WhatsApp Status
+                  </span>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-gold-500 to-amber-600 hover:from-gold-400 hover:to-amber-500 text-black font-extrabold py-2.5 rounded-xl shadow-lg flex items-center justify-center gap-2 text-xs"
-              >
-                <Send className="w-4 h-4 fill-black" />
-                <span>{loading ? "Broadcasting..." : "Broadcast Codes Instantly"}</span>
-              </button>
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-slate-200 dark:bg-gray-800 hover:bg-slate-300 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 rounded-lg font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-black rounded-lg flex items-center gap-1.5 shadow-sm transition-colors"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{loading ? "Dispatching..." : "Dispatch Broadcast"}</span>
+                </button>
+              </div>
             </>
           )}
         </form>

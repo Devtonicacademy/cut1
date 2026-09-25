@@ -69,17 +69,41 @@ export interface PredictionDetail {
   recommended_safe_odds?: number;
 }
 
+export interface HeadToHeadMatch {
+  date: string;
+  competition: string;
+  home_team: string;
+  away_team: string;
+  home_score: number;
+  away_score: number;
+  winner: 'home' | 'away' | 'draw';
+}
+
+export interface HeadToHeadStats {
+  total_meetings: number;
+  home_team_wins: number;
+  draws: number;
+  away_team_wins: number;
+  home_goals_total: number;
+  away_goals_total: number;
+  last_matches: HeadToHeadMatch[];
+  summary: string;
+}
+
 export interface Fixture {
   id: string;
   home_team: Team;
   away_team: Team;
   league: string;
   kickoff: string;
+  match_date?: string;
+  match_time?: string;
   venue: string;
   sportybet_odds: BookmakerOdds;
   bet9ja_odds: BookmakerOdds;
   status: string;
   prediction?: PredictionDetail;
+  h2h?: HeadToHeadStats;
 }
 
 export interface AccumulatorLeg {
