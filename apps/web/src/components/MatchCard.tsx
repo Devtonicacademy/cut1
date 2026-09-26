@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Fixture, ValueBetItem } from "@/types";
 import { 
   ChevronDown, ChevronUp, Sparkles, AlertTriangle, TrendingUp, 
-  CheckCircle2, Trophy, Shield, Calendar, Clock, BarChart2 
+  CheckCircle2, Trophy, Shield, Calendar, Clock, BarChart2, Lightbulb, ExternalLink, Check 
 } from "lucide-react";
 
 interface MatchCardProps {
@@ -16,6 +16,7 @@ interface MatchCardProps {
 export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showH2H, setShowH2H] = useState(false);
+  const [copiedBook, setCopiedBook] = useState<string | null>(null);
   const p = fixture.prediction;
 
   if (!p) return null;
@@ -27,6 +28,19 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
   const displayTime = fixture.match_time || (fixture.kickoff.includes(",") ? fixture.kickoff.split(",")[1].trim() + " WAT" : fixture.kickoff);
 
   const h2h = fixture.h2h;
+  const hasMarketOdds = fixture.sportybet_odds.bookmaker === "Market Average";
+
+  // Copies "Home vs Away" so it can be pasted into the bookmaker's search, then opens the site
+  const findOnBookmaker = (name: string, url: string) => {
+    try {
+      navigator.clipboard.writeText(`${fixture.home_team.name} vs ${fixture.away_team.name}`);
+    } catch {
+      // clipboard unavailable: the site still opens
+    }
+    setCopiedBook(name);
+    setTimeout(() => setCopiedBook(null), 2500);
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
@@ -47,6 +61,9 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
 
         {/* Date and Time Badge */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-gray-700 shadow-2xs">
+          <span className="inline-flex items-center gap-1 font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
+            🟢 UPCOMING
+          </span>
           <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-gray-200">
             <Calendar className="w-3.5 h-3.5 text-emerald-500" />
             <span>{displayDate}</span>
@@ -85,7 +102,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                 {p.recommended_safe_pick && (
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
                     <Shield className="w-3 h-3 inline text-emerald-500" />
-                    <span>Safe Anchor: <b>{p.recommended_safe_pick}</b> ({p.recommended_safe_odds?.toFixed(2)})</span>
+                    <span>Safer option: <b>{p.recommended_safe_pick}</b> (fair odds {p.recommended_safe_odds?.toFixed(2)})</span>
                   </p>
                 )}
               </div>
@@ -116,7 +133,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">xG: {fixture.home_team.rolling_xg_created.toFixed(2)}</p>
+            {fixture.home_team.rolling_xg_created > 0 && <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5" title="Expected goals per game, estimated from shots on target (last 6 games)">Shots xG: {fixture.home_team.rolling_xg_created.toFixed(2)}</p>}
           </div>
 
           {/* VS Divider & Score Expectancy */}
@@ -150,7 +167,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                 </span>
               ))}
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5">xG: {fixture.away_team.rolling_xg_created.toFixed(2)}</p>
+            {fixture.away_team.rolling_xg_created > 0 && <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5" title="Expected goals per game, estimated from shots on target (last 6 games)">Shots xG: {fixture.away_team.rolling_xg_created.toFixed(2)}</p>}
           </div>
         </div>
 
@@ -167,6 +184,22 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             <div style={{ width: `${p.prob_away_win * 100}%` }} className="bg-blue-500" />
           </div>
         </div>
+
+        {/* Why the model predicts this */}
+        {p.key_factors && p.key_factors.length > 0 && (
+          <div className="mb-3 p-2.5 rounded-lg bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 text-[11px]">
+            <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-gray-200 mb-1">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+              <span>Why</span>
+            </div>
+            <ul className="space-y-0.5 text-slate-600 dark:text-gray-300 list-disc pl-4">
+              {p.key_factors.map((factor, i) => <li key={i}>{factor}</li>)}
+            </ul>
+            {p.prediction_source && (
+              <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1.5">{p.prediction_source}</p>
+            )}
+          </div>
+        )}
 
         {/* Best +EV Value Play Callout */}
         {topValueBet && (
@@ -206,26 +239,39 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
           </div>
         )}
 
-        {/* Odds Comparison Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-gray-900/40 p-2 rounded-lg border border-slate-200/80 dark:border-gray-800/60 mb-2.5">
-          <div className="flex justify-between items-center">
-            <span className="text-slate-500 dark:text-gray-400 font-medium">SportyBet:</span>
-            <span className="font-mono text-slate-900 dark:text-white">
-              1: <b className="text-emerald-600 dark:text-emerald-400">{fixture.sportybet_odds.home_win.toFixed(2)}</b> | 
-              X: <b>{fixture.sportybet_odds.draw.toFixed(2)}</b> | 
-              2: <b>{fixture.sportybet_odds.away_win.toFixed(2)}</b>
+        {/* Market odds */}
+        <div className="text-xs bg-slate-50 dark:bg-gray-900/40 p-2 rounded-lg border border-slate-200/80 dark:border-gray-800/60 mb-2.5 space-y-1">
+          {hasMarketOdds ? (
+            [fixture.sportybet_odds, fixture.bet9ja_odds].map((book) => (
+              <div key={book.bookmaker} className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-gray-400 font-medium">{book.bookmaker}:</span>
+                <span className="font-mono text-slate-900 dark:text-white">
+                  1: <b className="text-emerald-600 dark:text-emerald-400">{book.home_win.toFixed(2)}</b> | X: <b>{book.draw.toFixed(2)}</b> | 2: <b>{book.away_win.toFixed(2)}</b>
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-slate-500 dark:text-gray-400">No bookmaker odds published yet for this match.</p>
+          )}
+          <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200 dark:border-gray-800/60">
+            <span className="text-[10px] text-slate-400 dark:text-gray-500 mr-auto">
+              {copiedBook ? `Match name copied: paste it into ${copiedBook} search` : "Check live odds:"}
             </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-slate-500 dark:text-gray-400 font-medium">Bet9ja:</span>
-            <span className="font-mono text-slate-900 dark:text-white">
-              1: <b className="text-emerald-600 dark:text-emerald-400">{fixture.bet9ja_odds.home_win.toFixed(2)}</b> | 
-              X: <b>{fixture.bet9ja_odds.draw.toFixed(2)}</b> | 
-              2: <b>{fixture.bet9ja_odds.away_win.toFixed(2)}</b>
-            </span>
+            {[
+              { name: "SportyBet", url: "https://www.sportybet.com/ng/" },
+              { name: "Bet9ja", url: "https://sports.bet9ja.com/" },
+            ].map((b) => (
+              <button
+                key={b.name}
+                onClick={() => findOnBookmaker(b.name, b.url)}
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800"
+              >
+                {copiedBook === b.name ? <Check className="w-3 h-3" /> : <ExternalLink className="w-3 h-3" />}
+                <span>{b.name}</span>
+              </button>
+            ))}
           </div>
         </div>
-
         {/* Action Buttons: Head-to-Head & AI Breakdown */}
         <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-gray-800">
           <button
@@ -237,7 +283,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             }`}
           >
             <BarChart2 className="w-3.5 h-3.5" />
-            <span>{showH2H ? "Hide H2H" : `H2H Stats (${h2h?.total_meetings || 5}+)`}</span>
+            <span>{showH2H ? "Hide H2H" : `Head-to-head (${h2h?.total_meetings ?? 0})`}</span>
           </button>
 
           <button
@@ -249,7 +295,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             }`}
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>{expanded ? "Hide AI" : "AI Tactical"}</span>
+            <span>{expanded ? "Hide analysis" : "Analysis"}</span>
             {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </button>
         </div>
@@ -335,7 +381,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
               <div className="bg-emerald-50/80 dark:bg-[#121f2d] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold mb-1">
                   <Trophy className="w-3.5 h-3.5" />
-                  <span>Dixon-Coles & xG Statistical Verdict</span>
+                  <span>Model verdict</span>
                 </div>
                 <p className="text-slate-800 dark:text-gray-200 leading-relaxed text-[11px]">
                   {p.statistical_verdict}
@@ -347,7 +393,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             <div className="bg-slate-50 dark:bg-[#12192a] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-gold-400 font-bold mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Google Gemini AI Match Analysis</span>
+                <span>Match analysis</span>
               </div>
               <p className="text-slate-800 dark:text-gray-200 leading-relaxed text-[11px] mb-2">
                 {p.gemini_tactical_summary}
@@ -362,7 +408,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             {p.value_bets.length > 1 && (
               <div>
                 <h4 className="font-bold text-[11px] text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-                  Alternative Value Markets:
+                  Other value markets:
                 </h4>
                 <div className="space-y-1.5">
                   {p.value_bets.slice(1, 4).map((vb, idx) => (

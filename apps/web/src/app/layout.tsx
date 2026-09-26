@@ -13,8 +13,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "LivelyBorg AI | Football Betting Intelligence Lagos",
-  description: "Next-gen AI sports prediction, +EV value finder, and Fractional Kelly bankroll manager for SportyBet & Bet9ja punters.",
+  title: "LivelyBorg AI | Honest Football Predictions",
+  description: "Football predictions trained on 70,000+ real matches, tested against the bookmakers, with a public track record locked before kickoff. 18+.",
 };
 
 export default function RootLayout({

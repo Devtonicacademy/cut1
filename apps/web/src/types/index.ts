@@ -67,6 +67,8 @@ export interface PredictionDetail {
   statistical_verdict?: string;
   recommended_safe_pick?: string;
   recommended_safe_odds?: number;
+  key_factors?: string[];
+  prediction_source?: string;
 }
 
 export interface HeadToHeadMatch {
@@ -92,6 +94,7 @@ export interface HeadToHeadStats {
 
 export interface Fixture {
   id: string;
+  div?: string;
   home_team: Team;
   away_team: Team;
   league: string;
@@ -102,6 +105,9 @@ export interface Fixture {
   sportybet_odds: BookmakerOdds;
   bet9ja_odds: BookmakerOdds;
   status: string;
+  is_upcoming?: boolean;
+  kickoff_timestamp?: string;
+  match_status?: string;
   prediction?: PredictionDetail;
   h2h?: HeadToHeadStats;
 }
@@ -117,6 +123,8 @@ export interface AccumulatorLeg {
   safer_alternative?: string;
   league?: string;
   likely_winner?: string;
+  bookmaker_search_text?: string;
+  kickoff?: string;
 }
 
 export interface AccumulatorResponse {
@@ -128,11 +136,13 @@ export interface AccumulatorResponse {
   legs: AccumulatorLeg[];
   cut_1_insured: boolean;
   cut_1_warning?: string;
-  sportybet_code: string;
-  bet9ja_code: string;
+  sportybet_code?: string | null;
+  bet9ja_code?: string | null;
   whatsapp_share_text: string;
   recommended_game_count_note?: string;
   leagues_covered?: string[];
+  match_search_list?: string;
+  is_upcoming_verified?: boolean;
 }
 
 export interface TrackRecordEntry {
@@ -161,4 +171,37 @@ export interface TrackRecordStats {
   roi_pct: number;
   current_winning_streak: number;
   entries: TrackRecordEntry[];
+}
+
+export interface ScoreSummary {
+  n: number;
+  accuracy: number;
+  log_loss: number;
+  brier: number;
+}
+
+export interface CalibrationRow {
+  bucket: string;
+  matches: number;
+  predicted: number;
+  actual: number;
+}
+
+export interface ModelReport {
+  trained_at: string;
+  trained_through: string;
+  primary_variant: string;
+  variants: Record<string, { algorithm: string; matches_used: number }>;
+  splits: { burn_in: string; validation: string; test: string[] };
+  test: Record<string, ScoreSummary>;
+  test_calibration: CalibrationRow[];
+  test_top_leagues: Record<string, Record<string, ScoreSummary>>;
+  value_policy: { enabled: boolean; reason?: string; min_ev?: number };
+}
+
+export interface ChainVerification {
+  valid: boolean;
+  entries: number;
+  first_broken_seq: number | null;
+  latest_hash?: string;
 }

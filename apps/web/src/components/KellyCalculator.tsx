@@ -2,14 +2,13 @@
 
 import React, { useState } from "react";
 import { ValueBetItem, RiskLevel } from "@/types";
-import { Shield, Zap, TrendingUp, DollarSign, ArrowRight, Trash2 } from "lucide-react";
+import { DollarSign, Trash2 } from "lucide-react";
 
 interface KellyCalculatorProps {
   bankroll: number;
   onBankrollChange: (val: number) => void;
   selectedBets: ValueBetItem[];
   onRemoveBet: (betIndex: number) => void;
-  onGenerateBookingSlip: () => void;
 }
 
 export default function KellyCalculator({
@@ -17,7 +16,6 @@ export default function KellyCalculator({
   onBankrollChange,
   selectedBets,
   onRemoveBet,
-  onGenerateBookingSlip,
 }: KellyCalculatorProps) {
   const [riskLevel, setRiskLevel] = useState<RiskLevel>("conservative");
 
@@ -74,10 +72,10 @@ export default function KellyCalculator({
         <div>
           <h2 className="text-base sm:text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            <span>Naira Bankroll & Kelly Staking Copilot</span>
+            <span>Stake Calculator</span>
           </h2>
           <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">
-            Fractional Kelly sizing eliminates accumulator wipes on SportyBet & Bet9ja.
+            Sizes stakes on value bets that passed our backtest, using a cautious fraction of the Kelly formula. Only stake what you can afford to lose.
           </p>
         </div>
 
@@ -218,23 +216,6 @@ export default function KellyCalculator({
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Action Footer */}
-      {selectedBets.length > 0 && (
-        <div className="flex flex-wrap justify-between items-center gap-3 pt-4 border-t border-slate-200 dark:border-gray-800">
-          <p className="text-xs text-slate-500 dark:text-gray-400">
-            Ready to load on SportyBet or Bet9ja?
-          </p>
-
-          <button
-            onClick={onGenerateBookingSlip}
-            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-6 py-2.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
-          >
-            <span>Generate SportyBet & Bet9ja Codes</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
         </div>
       )}
     </div>

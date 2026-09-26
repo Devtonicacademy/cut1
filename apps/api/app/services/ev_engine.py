@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import Collection, List, Dict, Optional
 from apps.api.app.models.schemas import BookmakerOdds, ValueBetItem, MarketType
 
 class EvEngine:
@@ -20,98 +20,45 @@ class EvEngine:
         away_team: str,
         probs: Dict[str, float],
         sporty_odds: BookmakerOdds,
-        bet9ja_odds: BookmakerOdds,
-        default_bankroll: float = 10000.0
+        bet9ja_odds: Optional[BookmakerOdds] = None,
+        default_bankroll: float = 10000.0,
+        min_ev: Optional[float] = None,
+        markets: Optional[Collection[MarketType]] = None,
     ) -> List[ValueBetItem]:
         """
-        Cross-checks all standard football markets across SportyBet and Bet9ja
-        to find all +EV value opportunities.
+        Cross-checks football markets across one or two price sources to find +EV
+        opportunities. `markets` limits which markets are considered and `min_ev`
+        overrides the default threshold (both come from the backtested value policy).
         """
         value_bets: List[ValueBetItem] = []
+        threshold = cls.MIN_EV_THRESHOLD if min_ev is None else min_ev
+        books = [b for b in (sporty_odds, bet9ja_odds) if b is not None]
 
         markets_to_check = [
-            (
-                MarketType.HOME_WIN,
-                f"{home_team} to Win (1)",
-                f"{home_team} Win",
-                probs["prob_home_win"],
-                sporty_odds.home_win,
-                bet9ja_odds.home_win
-            ),
-            (
-                MarketType.DRAW,
-                f"Draw (X)",
-                "Full Time Draw",
-                probs["prob_draw"],
-                sporty_odds.draw,
-                bet9ja_odds.draw
-            ),
-            (
-                MarketType.AWAY_WIN,
-                f"{away_team} to Win (2)",
-                f"{away_team} Win",
-                probs["prob_away_win"],
-                sporty_odds.away_win,
-                bet9ja_odds.away_win
-            ),
-            (
-                MarketType.DOUBLE_CHANCE_1X,
-                f"{home_team} or Draw (1X)",
-                "Double Chance 1X",
-                probs["prob_home_win"] + probs["prob_draw"],
-                sporty_odds.double_chance_1x or 1.25,
-                bet9ja_odds.double_chance_1x or 1.24
-            ),
-            (
-                MarketType.DOUBLE_CHANCE_X2,
-                f"{away_team} or Draw (X2)",
-                "Double Chance X2",
-                probs["prob_away_win"] + probs["prob_draw"],
-                sporty_odds.double_chance_x2 or 1.45,
-                bet9ja_odds.double_chance_x2 or 1.43
-            ),
-            (
-                MarketType.OVER_1_5,
-                "Over 1.5 Goals",
-                "Over 1.5 Goals",
-                probs["prob_over_1_5"],
-                sporty_odds.over_1_5 or 1.30,
-                bet9ja_odds.over_1_5 or 1.28
-            ),
-            (
-                MarketType.OVER_2_5,
-                "Over 2.5 Goals",
-                "Over 2.5 Goals",
-                probs["prob_over_2_5"],
-                sporty_odds.over_2_5 or 1.95,
-                bet9ja_odds.over_2_5 or 1.92
-            ),
-            (
-                MarketType.UNDER_2_5,
-                "Under 2.5 Goals",
-                "Under 2.5 Goals",
-                probs["prob_under_2_5"],
-                sporty_odds.under_2_5 or 1.88,
-                bet9ja_odds.under_2_5 or 1.90
-            ),
-            (
-                MarketType.BTTS_YES,
-                "Both Teams To Score (GG)",
-                "Both Teams Score: Yes",
-                probs["prob_btts"],
-                sporty_odds.btts_yes or 1.85,
-                bet9ja_odds.btts_yes or 1.82
-            ),
+            (MarketType.HOME_WIN, f"{home_team} to Win (1)", f"{home_team} Win", probs["prob_home_win"], "home_win"),
+            (MarketType.DRAW, "Draw (X)", "Full Time Draw", probs["prob_draw"], "draw"),
+            (MarketType.AWAY_WIN, f"{away_team} to Win (2)", f"{away_team} Win", probs["prob_away_win"], "away_win"),
+            (MarketType.DOUBLE_CHANCE_1X, f"{home_team} or Draw (1X)", "Double Chance 1X",
+             probs["prob_home_win"] + probs["prob_draw"], "double_chance_1x"),
+            (MarketType.DOUBLE_CHANCE_X2, f"{away_team} or Draw (X2)", "Double Chance X2",
+             probs["prob_away_win"] + probs["prob_draw"], "double_chance_x2"),
+            (MarketType.OVER_1_5, "Over 1.5 Goals", "Over 1.5 Goals", probs["prob_over_1_5"], "over_1_5"),
+            (MarketType.OVER_2_5, "Over 2.5 Goals", "Over 2.5 Goals", probs["prob_over_2_5"], "over_2_5"),
+            (MarketType.UNDER_2_5, "Under 2.5 Goals", "Under 2.5 Goals", probs["prob_under_2_5"], "under_2_5"),
+            (MarketType.BTTS_YES, "Both Teams To Score (GG)", "Both Teams Score: Yes", probs["prob_btts"], "btts_yes"),
         ]
 
-        for m_type, m_name, selection, model_prob, s_odds, b_odds in markets_to_check:
-            # Pick the best available market price
-            best_odds = max(s_odds, b_odds)
-            best_bookie = "SportyBet" if s_odds >= b_odds else "Bet9ja"
-            
+        for m_type, m_name, selection, model_prob, odds_field in markets_to_check:
+            if markets is not None and m_type not in markets:
+                continue
+            # Only real prices count; a market with no quoted odds is skipped
+            prices = [(getattr(b, odds_field), b.bookmaker) for b in books if getattr(b, odds_field)]
+            if not prices:
+                continue
+            best_odds, best_bookie = max(prices, key=lambda p: p[0])
             ev = cls.calculate_ev(model_prob, best_odds)
             
-            if ev >= cls.MIN_EV_THRESHOLD:
+            if ev >= threshold:
                 implied_prob = 1.0 / best_odds
                 fair_odds = round(1.0 / max(0.01, model_prob), 2)
                 

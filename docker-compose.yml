@@ -1,39 +1,53 @@
-version: '3.8'
+# Production stack: Caddy (HTTPS) -> web (Next.js) + api (FastAPI + scheduler, SQLite on a volume)
+#   1. copy .env.example to .env and fill it in (ADMIN_TOKEN, FOOTBALL_DATA_KEY, ...)
+#   2. set SITE_ADDRESS in .env to your domain, e.g. livelyborg.duckdns.org
+#   3. docker compose up -d --build
+# See DEPLOY.md for the full guide.
 
 services:
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: livelyborg-api
     restart: unless-stopped
-    ports:
-      - "8000:8000"
-    environment:
-      - PORT=8000
-      - ENVIRONMENT=production
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+    env_file: .env
+    volumes:
+      - livelyborg-data:/app/data  # database, model, backups: survives rebuilds
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 30s
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
-    container_name: livelyborg-web
+        NEXT_PUBLIC_API_URL: /api/v1
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     depends_on:
       api:
         condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
     environment:
-      - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+      - web
+
+volumes:
+  livelyborg-data:
+  caddy-data:
+  caddy-config:

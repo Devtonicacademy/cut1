@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, ShieldCheck, Send, Database, Sliders, Layers, Sun, Moon, Shield, Award } from "lucide-react";
+import { Zap, Database, Layers, Sun, Moon } from "lucide-react";
 
 interface HeaderProps {
   bankroll: number;
@@ -11,8 +11,8 @@ interface HeaderProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
   onOpenBankerModal: () => void;
-  onOpenAdminModal: () => void;
   onOpenAccaBuilder?: (targetLegs: number) => void;
+  showKelly: boolean;
   isDarkMode: boolean;
   onToggleTheme: () => void;
 }
@@ -25,8 +25,8 @@ export default function Header({
   activeTab,
   onSelectTab,
   onOpenBankerModal,
-  onOpenAdminModal,
   onOpenAccaBuilder,
+  showKelly,
   isDarkMode,
   onToggleTheme,
 }: HeaderProps) {
@@ -36,17 +36,12 @@ export default function Header({
       <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-950/90 dark:via-emerald-900/60 dark:to-black px-3.5 py-1 text-[11px] sm:text-xs flex justify-between items-center text-white dark:text-emerald-300 font-medium">
         <div className="flex items-center gap-1.5 truncate">
           <span className="flex h-2 w-2 rounded-full bg-emerald-300 animate-pulse shrink-0" />
-          <span className="truncate">Lagos Value Alert: SportyBet line discrepancy on Arsenal (+14.2% EV)</span>
+          <span className="truncate">Predictions are probabilities, not guarantees. Every pick is locked before kickoff.</span>
         </div>
         <div className="hidden md:flex items-center gap-3 shrink-0">
-          <span>Supported: <b>SportyBet</b> • <b>Bet9ja</b> • <b>BetKing</b></span>
+          <span>18+ only • Bet responsibly</span>
           <span className="opacity-40">|</span>
-          <button 
-            onClick={onOpenAdminModal}
-            className="text-amber-200 dark:text-gold-400 hover:underline font-bold flex items-center gap-1"
-          >
-            Admin Panel
-          </button>
+          <span>Not affiliated with any bookmaker</span>
         </div>
       </div>
 
@@ -62,11 +57,9 @@ export default function Header({
               <h1 className="font-black text-base sm:text-lg tracking-tight text-slate-900 dark:text-white flex items-center gap-0.5">
                 LIVELYBORG <span className="text-emerald-600 dark:text-emerald-400">AI</span>
               </h1>
-              <span className="text-[9px] uppercase font-bold px-1 py-0.2 rounded bg-amber-100 text-amber-800 dark:bg-gold-500/20 dark:text-gold-400 border border-amber-300 dark:border-gold-500/30">
-                PRO
-              </span>
+
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-gray-400 hidden xs:block -mt-0.5">Lagos Football Intelligence & Bankroll Copilot</p>
+            <p className="text-[10px] text-slate-500 dark:text-gray-400 hidden xs:block -mt-0.5">Honest football predictions, trained on 70,000+ matches</p>
           </div>
         </div>
 
@@ -119,21 +112,21 @@ export default function Header({
           {/* Acca Builder Quick Button */}
           {onOpenAccaBuilder && (
             <button
-              onClick={() => onOpenAccaBuilder(10)}
+              onClick={() => onOpenAccaBuilder(5)}
               className="hidden lg:flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-sm transition-colors"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>Acca Builder</span>
+              <span>Slip Builder</span>
             </button>
           )}
 
           {/* Instant 2-Odds Banker Button */}
           <button
             onClick={onOpenBankerModal}
-            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white dark:text-black font-extrabold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-sm transition-all"
+            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white dark:text-black font-extrabold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg hidden md:flex items-center gap-1 shadow-sm transition-all"
           >
             <Zap className="w-3.5 h-3.5 fill-current" />
-            <span className="whitespace-nowrap">2-Odds Banker</span>
+            <span className="whitespace-nowrap">2-Odds Slip</span>
           </button>
         </div>
       </div>
@@ -154,35 +147,26 @@ export default function Header({
 
           {onOpenAccaBuilder && (
             <button
-              onClick={() => onOpenAccaBuilder(10)}
+              onClick={() => onOpenAccaBuilder(5)}
               className="px-3 py-1.5 rounded-md font-bold whitespace-nowrap text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 flex items-center gap-1"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>🎯 10–30 Games Acca</span>
+              <span>🎯 Slip Builder</span>
             </button>
           )}
 
-          <button
-            onClick={() => onSelectTab("bankroll")}
-            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
-              activeTab === "bankroll"
-                ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
-                : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
-            }`}
-          >
-            💼 Kelly Calculator
-          </button>
-
-          <button
-            onClick={() => onSelectTab("challenge")}
-            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
-              activeTab === "challenge"
-                ? "bg-amber-500 text-white dark:bg-gold-500/20 dark:text-gold-400 dark:border dark:border-gold-500/40 shadow-xs"
-                : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
-            }`}
-          >
-            🚀 ₦1k → ₦50k Ladder
-          </button>
+          {showKelly && (
+            <button
+              onClick={() => onSelectTab("bankroll")}
+              className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+                activeTab === "bankroll"
+                  ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              💼 Stake Calculator
+            </button>
+          )}
 
           <button
             onClick={() => onSelectTab("tracker")}
@@ -196,10 +180,14 @@ export default function Header({
           </button>
 
           <button
-            onClick={onOpenAdminModal}
-            className="md:hidden px-3 py-1.5 rounded-md font-bold whitespace-nowrap text-amber-700 dark:text-gold-400 hover:underline ml-auto"
+            onClick={() => onSelectTab("accuracy")}
+            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+              activeTab === "accuracy"
+                ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
+                : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
+            }`}
           >
-            ⚙️ Admin
+            📊 Accuracy
           </button>
         </div>
       </div>

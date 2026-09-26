@@ -96,6 +96,8 @@ class PredictionDetail(BaseModel):
     statistical_verdict: str = ""
     recommended_safe_pick: str = ""
     recommended_safe_odds: float = 1.20
+    key_factors: List[str] = [] # plain-English reasons behind the prediction
+    prediction_source: str = "" # which model produced the 1X2 probabilities
 
 class HeadToHeadMatch(BaseModel):
     date: str
@@ -118,6 +120,7 @@ class HeadToHeadStats(BaseModel):
 
 class Fixture(BaseModel):
     id: str
+    div: Optional[str] = None # football-data.co.uk division code, e.g. "E0"
     home_team: Team
     away_team: Team
     league: str
@@ -128,6 +131,9 @@ class Fixture(BaseModel):
     sportybet_odds: BookmakerOdds
     bet9ja_odds: BookmakerOdds
     status: str = "UPCOMING"
+    is_upcoming: bool = True
+    kickoff_timestamp: Optional[str] = None
+    match_status: str = "UPCOMING"
     actual_home_score: Optional[int] = None
     actual_away_score: Optional[int] = None
     prediction: Optional[PredictionDetail] = None
@@ -152,7 +158,7 @@ class AccumulatorRequest(BaseModel):
     bankroll_ngn: float = 10000.0
     max_legs: int = 5
     target_legs: Optional[int] = None # When user specifies number of games e.g. 5, 10, 15, 20, 25, 30
-    strategy: Optional[str] = "safest_winners" # "safest_winners", "balanced_value", "straight_win"
+    strategy: Optional[str] = "safest" # "safest" (double chance) or "straight_win"
     selected_leagues: Optional[List[str]] = None # Filter by specific leagues
 
 class AccumulatorLeg(BaseModel):
@@ -166,6 +172,8 @@ class AccumulatorLeg(BaseModel):
     safer_alternative: Optional[str] = None # For Cut-1 Doctor
     league: Optional[str] = None
     likely_winner: Optional[str] = None
+    bookmaker_search_text: Optional[str] = None
+    kickoff: Optional[str] = None
 
 class AccumulatorResponse(BaseModel):
     ticket_type: str # "2-Odds Daily Banker", "Weekend 5-Odds Ticket", "Top 10 High Confidence Acca", "20-Game Mega Slip"
@@ -176,11 +184,13 @@ class AccumulatorResponse(BaseModel):
     legs: List[AccumulatorLeg]
     cut_1_insured: bool
     cut_1_warning: Optional[str] = None
-    sportybet_code: str
-    bet9ja_code: str
+    sportybet_code: Optional[str] = None # real booking codes need a bookmaker partnership
+    bet9ja_code: Optional[str] = None
     whatsapp_share_text: str
     recommended_game_count_note: Optional[str] = None
     leagues_covered: Optional[List[str]] = None
+    match_search_list: Optional[str] = None
+    is_upcoming_verified: bool = True
 
 class TrackRecordEntry(BaseModel):
     id: str
@@ -207,10 +217,3 @@ class TrackRecordStats(BaseModel):
     roi_pct: float
     current_winning_streak: int
     entries: List[TrackRecordEntry]
-
-class AdminBroadcastRequest(BaseModel):
-    title: str
-    message: str
-    sportybet_code: str
-    bet9ja_code: str
-    channels: List[str] = ["web", "telegram"] # "web", "telegram", "whatsapp"

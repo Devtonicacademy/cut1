@@ -2,53 +2,119 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+import asyncio
+import secrets
+from contextlib import asynccontextmanager
 
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List
+
+from apps.api.app.data import db, ingest
 from apps.api.app.models.schemas import (
     Fixture, BankrollRequest, BankrollAllocation,
     AccumulatorRequest, AccumulatorResponse,
-    TrackRecordStats, AdminBroadcastRequest, RiskLevel, BetStatus
+    TrackRecordStats
 )
+from apps.api.app import jobs
 from apps.api.app.services.fixture_service import FixtureService
 from apps.api.app.services.kelly_engine import KellyEngine
 from apps.api.app.services.accas_optimizer import AccasOptimizer
 from apps.api.app.services.tracker_service import TrackerService
-from apps.api.app.services.admin_service import AdminService
+
+async def _refresh_data() -> dict:
+    """Pulls the latest results and fixtures without blocking the event loop."""
+    result = await asyncio.to_thread(ingest.refresh)
+    fixture_service.refresh_fixtures()
+    return result
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Refresh -> predict -> lock -> grade every few hours, retraining weekly (apps/api/app/jobs.py)
+    task = None
+    if os.getenv("LIVELYBORG_AUTO_REFRESH", "1") == "1":
+        task = asyncio.create_task(jobs.scheduler_loop(fixture_service))
+    yield
+    if task:
+        task.cancel()
+
 
 app = FastAPI(
     title="LivelyBorg AI Sports Intelligence API",
-    description="Next-generation football predictive modeling, +EV discovery, and smart bankroll staking for Nigeria",
-    version="1.0.0"
+    description="Football match predictions trained on real results, with a public, tamper-evident track record",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-# Enable CORS for Next.js PWA and local testing
+# Only the web app's own origins may call the API from a browser (comma-separated in ALLOWED_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=[o.strip() for o in os.getenv(
+        "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "X-Admin-Token"],
 )
 
 fixture_service = FixtureService()
 tracker_service = TrackerService()
-admin_service = AdminService()
+
+
+def require_admin(x_admin_token: str = Header(default="")) -> None:
+    """Admin endpoints need the X-Admin-Token header to match ADMIN_TOKEN; they are off when it is unset."""
+    expected = os.getenv("ADMIN_TOKEN", "")
+    if not expected:
+        raise HTTPException(status_code=403, detail="Admin endpoints are disabled: set ADMIN_TOKEN on the server")
+    if not secrets.compare_digest(x_admin_token, expected):
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+
 
 @app.get("/api/v1/health")
 async def healthcheck():
+    predictor = fixture_service.predictor
     return {
         "status": "healthy",
-        "market": "Lagos, Nigeria",
-        "supported_bookmakers": ["SportyBet", "Bet9ja", "BetKing"],
-        "models_active": ["Dixon-Coles Bivariate Poisson", "Rolling xG Ensemble", "Google Gemini Contextual"]
+        "model_loaded": predictor.available,
+        "model_trained_at": predictor.report.get("trained_at"),
     }
 
 @app.get("/api/v1/fixtures", response_model=List[Fixture])
-async def get_fixtures(bankroll: float = Query(10000.0, description="User bankroll in Naira")):
+async def get_fixtures(
+    bankroll: float = Query(10000.0, description="User bankroll in Naira"),
+    upcoming_only: bool = Query(True, description="Strictly filter for upcoming matches")
+):
     """Retrieves all upcoming fixtures enriched with AI probabilities, fair odds, and +EV plays."""
-    return await fixture_service.get_all_fixtures_with_predictions(bankroll)
+    fixtures = await fixture_service.get_all_fixtures_with_predictions(bankroll)
+    if upcoming_only:
+        fixtures = [f for f in fixtures if getattr(f, "is_upcoming", True)]
+    return fixtures
+
+@app.post("/api/v1/fixtures/refresh", response_model=List[Fixture], dependencies=[Depends(require_admin)])
+async def refresh_fixtures(bankroll: float = Query(10000.0)):
+    """Pulls the latest results and fixtures from the data source, then rebuilds predictions."""
+    try:
+        await _refresh_data()
+    except Exception as e:
+        print(f"Data refresh failed, serving cached data: {e}")
+    fixtures = await fixture_service.get_all_fixtures_with_predictions(bankroll)
+    return [f for f in fixtures if f.is_upcoming]
+
+@app.get("/api/v1/data/status")
+async def get_data_status():
+    """Shows how much real data is loaded and when it was last refreshed."""
+    with db.connect() as conn:
+        status = db.data_status(conn)
+    status["sources"] = ["football-data.co.uk", "football-data.org"]
+    return status
+
+@app.get("/api/v1/model/report")
+async def get_model_report():
+    """Backtest of the prediction model against bookmakers on seasons it never trained on."""
+    predictor = fixture_service.predictor
+    predictor.reload_if_changed()
+    if not predictor.available:
+        raise HTTPException(status_code=404, detail="No trained model. Run: python -m apps.api.app.ml.train")
+    return predictor.report
 
 @app.get("/api/v1/fixtures/{fixture_id}", response_model=Fixture)
 async def get_fixture_detail(fixture_id: str, bankroll: float = Query(10000.0)):
@@ -81,41 +147,26 @@ async def build_smart_accumulator(req: AccumulatorRequest):
         bankroll_ngn=req.bankroll_ngn,
         max_legs=req.max_legs,
         target_legs=req.target_legs,
-        strategy=req.strategy or "safest_winners",
+        strategy=req.strategy or "safest",
         selected_leagues=req.selected_leagues
     )
 
 @app.get("/api/v1/track-record", response_model=TrackRecordStats)
 async def get_public_track_record():
-    """Returns verified public track record with win rates, ROI %, and loss post-mortems."""
+    """Every prediction locked before kickoff, graded automatically from official results."""
     return tracker_service.get_public_stats()
 
-@app.get("/api/v1/challenge/ladder")
-async def get_ladder_challenge():
-    """Returns the live status of the public ₦1,000 to ₦50,000 compounding ladder challenge."""
-    return admin_service.get_ladder_challenge_status()
+@app.get("/api/v1/track-record/verify")
+async def verify_track_record():
+    """Recomputes the hash chain: proves no past prediction was edited, inserted or deleted."""
+    return tracker_service.verify()
 
-@app.post("/api/v1/admin/broadcast")
-async def broadcast_booking_codes(req: AdminBroadcastRequest):
-    """Admin superpower: 1-click multi-channel broadcaster to Web PWA and Telegram."""
-    return admin_service.broadcast_codes(req)
+@app.get("/api/v1/track-record/export")
+async def export_track_record():
+    """The complete prediction ledger, so anyone can re-check every hash themselves."""
+    return tracker_service.export()
 
-@app.post("/api/v1/admin/settle")
-async def settle_match(
-    match: str,
-    prediction: str,
-    odds: float,
-    stake_ngn: float,
-    result: BetStatus,
-    post_mortem: Optional[str] = None
-):
-    """Admin superpower: Settle bet results and update audited track record."""
-    entry = tracker_service.record_bet_result(
-        match=match,
-        prediction=prediction,
-        odds=odds,
-        stake_ngn=stake_ngn,
-        result=result,
-        post_mortem=post_mortem
-    )
-    return {"success": True, "entry": entry}
+@app.post("/api/v1/jobs/run", dependencies=[Depends(require_admin)])
+async def run_pipeline_now():
+    """Runs one refresh -> predict -> lock -> grade cycle immediately."""
+    return await jobs.run_cycle(fixture_service)

@@ -11,3 +11,6 @@ pytest>=8.0.0
 pytest-asyncio>=1.4.0
 google-genai>=0.1.0
 python-dotenv>=1.0.0
+tzdata>=2024.1
+scikit-learn>=1.5
+joblib>=1.4

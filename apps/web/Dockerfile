@@ -1,33 +1,29 @@
-# Production Dockerfile for LivelyBorg Web (Next.js 15 PWA)
-FROM node:20-alpine AS builder
-
+# Production image for the LivelyBorg web app (Next.js standalone output)
+FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy package files
 COPY apps/web/package*.json ./
 RUN npm ci
 
-# Copy source files
 COPY apps/web ./
 
-# Build-time environment variable for API URL
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
+# The API is served from the same domain under /api (see Caddyfile)
+ARG NEXT_PUBLIC_API_URL=/api/v1
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Runner stage
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1
 
-ENV NODE_ENV=production
-ENV PORT=3000
-
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+USER node
 EXPOSE 3000
-
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]

@@ -1,29 +1,40 @@
+import httpx
 import pytest
-import asyncio
-from apps.bot.telegram_bot import TelegramBettingBot
 from starlette.testclient import TestClient
+
 from apps.api.app.main import app
+from apps.bot.telegram_bot import TelegramBettingBot
 
-def test_telegram_bot_mock_generation():
-    """Verify that Telegram bot message formatting functions work seamlessly."""
-    bot = TelegramBettingBot()
-    # We can test the local logic or formatting
-    assert bot.api_url is not None
+client = TestClient(app)
 
-def test_telegram_bot_banker_formatting():
-    """Verify daily banker message layout has SportyBet and Bet9ja codes."""
-    # Using TestClient against FastAPI directly to verify payload structure
-    client = TestClient(app)
-    res = client.post("/api/v1/accumulators/build", json={
-        "target_odds": 2.2,
-        "risk_level": "conservative",
-        "bankroll_ngn": 10000.0,
-        "max_legs": 3
-    })
-    assert res.status_code == 200
-    data = res.json()
-    assert "sportybet_code" in data
-    assert "bet9ja_code" in data
-    assert data["sportybet_code"].startswith("SB-")
-    assert data["bet9ja_code"].startswith("B9-")
-    assert "Total Odds" in data["whatsapp_share_text"]
+
+class _ApiThroughTestClient(httpx.AsyncBaseTransport):
+    """Routes the bot's HTTP calls to the in-process API."""
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        res = client.request(request.method, str(request.url), content=request.content, headers=dict(request.headers))
+        return httpx.Response(res.status_code, content=res.content, headers=res.headers)
+
+
+@pytest.fixture
+def bot(monkeypatch):
+    original = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **k: original(transport=_ApiThroughTestClient()))
+    return TelegramBettingBot(api_url="http://testserver/api/v1")
+
+
+def test_bot_has_api_url():
+    assert TelegramBettingBot().api_url
+
+
+@pytest.mark.asyncio
+async def test_daily_slip_message_is_honest(bot):
+    message = await bot.get_daily_banker(10000.0)
+    assert "DAILY SLIP" in message and "Chance all picks win" in message
+    assert "Code" not in message  # no fake booking codes
+    assert "18+" in message
+
+
+@pytest.mark.asyncio
+async def test_value_bet_message(bot):
+    message = await bot.get_value_bets(10000.0)
+    assert "18+" in message

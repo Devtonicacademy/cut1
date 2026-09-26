@@ -28,8 +28,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Local football database & downloaded CSV cache (rebuild with: python -m apps.api.app.data.ingest)
+/data/
+
 # IDE & OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+*.tsbuildinfo

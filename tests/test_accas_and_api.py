@@ -1,9 +1,10 @@
+import math
 import pytest
 from apps.api.app.services.fixture_service import FixtureService
 from apps.api.app.services.accas_optimizer import AccasOptimizer
-from apps.api.app.services.admin_service import AdminService
+from apps.api.app.services.accas_optimizer import MAX_LEGS
 from apps.api.app.services.tracker_service import TrackerService
-from apps.api.app.models.schemas import RiskLevel, BetStatus, AdminBroadcastRequest
+from apps.api.app.models.schemas import RiskLevel
 
 @pytest.mark.asyncio
 async def test_fixture_enrichment_and_prediction():
@@ -16,58 +17,35 @@ async def test_fixture_enrichment_and_prediction():
         assert f.prediction is not None
         assert f.prediction.expected_goals_home > 0
         assert f.prediction.expected_goals_away > 0
-        assert len(f.prediction.value_bets) > 0
         assert f.prediction.gemini_tactical_summary != ""
+        # Value bets are only ever priced against real quoted odds
+        for vb in f.prediction.value_bets:
+            assert vb.bookmaker in ("Market Average", "Best Price")
+            assert vb.expected_value_pct >= 2.0  # the test model's value policy threshold
+    assert any(f.prediction.value_bets for f in fixtures)
 
 @pytest.mark.asyncio
-async def test_smart_accumulator_and_cut_1():
-    """Verify smart accumulator generation, booking codes, and WhatsApp share copy."""
+async def test_target_odds_slip_uses_real_prices_and_honest_probability():
     service = FixtureService()
     fixtures = await service.get_all_fixtures_with_predictions(bankroll_ngn=10000.0)
-    
-    acc_response = AccasOptimizer.build_smart_accumulator(
-        fixtures=fixtures,
-        target_odds=3.0,
-        risk_level=RiskLevel.BALANCED,
-        bankroll_ngn=10000.0,
-        max_legs=4
+    slip = AccasOptimizer.build_smart_accumulator(
+        fixtures=fixtures, target_odds=3.0, risk_level=RiskLevel.BALANCED, bankroll_ngn=10000.0, max_legs=4
     )
-
-    assert acc_response.total_odds >= 1.5
-    assert len(acc_response.legs) >= 2
-    assert acc_response.sportybet_code.startswith("SB-")
-    assert acc_response.bet9ja_code.startswith("B9-")
-    assert "SportyBet Code" in acc_response.whatsapp_share_text
-    assert acc_response.recommended_stake_ngn >= 100.0
-
-def test_admin_broadcast_and_ladder_challenge():
-    """Verify admin multi-channel broadcasting and ladder challenge progression."""
-    admin = AdminService()
-    req = AdminBroadcastRequest(
-        title="🔥 Weekend 5-Odds VIP Slip Dropped!",
-        message="AI confidence 84%. Use fractional Kelly 2.5% stake.",
-        sportybet_code="SB-WKD82",
-        bet9ja_code="B9-99120",
-        channels=["web", "telegram"]
-    )
-    res = admin.broadcast_codes(req)
-    assert res["success"] is True
-    assert "broadcast_id" in res
-
-    # Check ladder challenge
-    ladder = admin.get_ladder_challenge_status()
-    assert ladder["starting_amount_ngn"] == 1000.0
-    assert ladder["current_bankroll_ngn"] > 1000.0
-    assert len(ladder["history"]) >= 4
-
-def test_tracker_service_roi():
-    """Verify public track record calculations."""
+    assert 2 <= len(slip.legs) <= 4
+    assert slip.sportybet_code is None and slip.bet9ja_code is None  # no fake booking codes
+    assert slip.total_odds == pytest.approx(math.prod(l.odds for l in slip.legs), abs=0.02)
+    assert slip.win_probability == pytest.approx(math.prod(l.model_probability for l in slip.legs), rel=1e-3)
+    assert f"{slip.win_probability:.1%}" in slip.cut_1_warning
+    assert slip.recommended_stake_ngn == 100.0  # at most 1% of bankroll (min ₦100)
+    assert "18+" in slip.whatsapp_share_text
+def test_tracker_service_reads_the_verifiable_ledger():
+    """The public track record comes only from the hash-chained prediction ledger."""
     tracker = TrackerService()
     stats = tracker.get_public_stats()
-    assert stats.total_bets >= 5
-    assert stats.win_rate_pct > 50.0
-    assert stats.roi_pct > 0.0
-    assert stats.current_winning_streak >= 0
+    assert stats.total_bets == len(stats.entries)
+    assert stats.wins + stats.losses + stats.voids <= stats.total_bets
+    assert tracker.verify()["valid"] is True
+    assert not hasattr(tracker, "record_bet_result")  # no manual result entry
 
 @pytest.mark.asyncio
 async def test_likely_winner_statistics():
@@ -86,45 +64,24 @@ async def test_likely_winner_statistics():
         assert p.recommended_safe_odds >= 1.01
 
 @pytest.mark.asyncio
-async def test_multi_game_accumulators_10_20_30_legs():
-    """Verify multi-game accumulator builder for 10, 20, and 25+ games across leagues."""
+async def test_multi_game_slips_are_diverse_capped_and_only_priced():
     service = FixtureService()
     fixtures = await service.get_all_fixtures_with_predictions(bankroll_ngn=10000.0)
+    by_id = {f.id: f for f in fixtures}
 
-    # Test 10-game accumulator
-    acca_10 = AccasOptimizer.build_smart_accumulator(
-        fixtures=fixtures,
-        bankroll_ngn=10000.0,
-        target_legs=10,
-        strategy="safest_winners"
-    )
-    assert len(acca_10.legs) == 10
-    assert acca_10.total_odds > 1.5
-    assert acca_10.sportybet_code.startswith("SB-")
-    assert acca_10.bet9ja_code.startswith("B9-")
-    assert acca_10.leagues_covered is not None
-    assert len(acca_10.leagues_covered) >= 4 # Spans 4+ different leagues
-    assert acca_10.recommended_game_count_note is not None
-    assert "Sweet Spot" in acca_10.recommended_game_count_note
+    safest = AccasOptimizer.build_smart_accumulator(fixtures=fixtures, target_legs=10, strategy="safest")
+    assert len(safest.legs) == 10
+    assert len(safest.leagues_covered) >= 4
+    for leg in safest.legs:
+        f = by_id[leg.fixture_id]
+        assert f.sportybet_odds.bookmaker == "Market Average"
+        assert leg.model_probability >= 0.5 and ("1X" in leg.market or "X2" in leg.market)
 
-    # Test 20-game accumulator
-    acca_20 = AccasOptimizer.build_smart_accumulator(
-        fixtures=fixtures,
-        bankroll_ngn=10000.0,
-        target_legs=20,
-        strategy="safest_winners"
-    )
-    assert len(acca_20.legs) == 20
-    assert len(acca_20.leagues_covered) >= 5 # Spans 5+ leagues
-    assert acca_20.cut_1_warning is not None
-    assert "Cut-2" in acca_20.cut_1_warning or "Cut-1" in acca_20.cut_1_warning
+    straight = AccasOptimizer.build_smart_accumulator(fixtures=fixtures, target_legs=5, strategy="straight_win")
+    for leg in straight.legs:
+        f = by_id[leg.fixture_id]
+        assert leg.odds in (f.sportybet_odds.home_win, f.sportybet_odds.away_win)
 
-    # Test 25-game accumulator
-    acca_25 = AccasOptimizer.build_smart_accumulator(
-        fixtures=fixtures,
-        bankroll_ngn=10000.0,
-        target_legs=25,
-        strategy="safest_winners"
-    )
-    assert len(acca_25.legs) >= 20
-    assert acca_25.recommended_stake_ngn <= 500.0 # Stake is safely capped for long tickets
+    long_slip = AccasOptimizer.build_smart_accumulator(fixtures=fixtures, target_legs=30, strategy="safest_winners")
+    assert len(long_slip.legs) <= MAX_LEGS
+    assert f"capped at {MAX_LEGS}" in long_slip.recommended_game_count_note
