@@ -73,7 +73,10 @@ async def run_cycle(fixture_service: FixtureService) -> Dict:
             locked = ledger.lock_predictions(conn, fixtures, now)
             graded = ledger.grade(conn, now)
             db.set_meta(conn, "last_cycle", now.isoformat())
-        return {"refresh": refresh, "locked": locked, **graded}
+        explained = await fixture_service.gemini.explain_missing(fixtures)
+        if explained.get("written"):
+            fixture_service.refresh_explanations()
+        return {"refresh": refresh, "locked": locked, **graded, "explanations": explained}
 
 
 def model_age_days() -> float:
@@ -115,7 +118,7 @@ async def scheduler_loop(fixture_service: FixtureService) -> None:
 
 def main() -> None:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(db.REPO_ROOT / ".env")
     parser = argparse.ArgumentParser(description="Run one LivelyBorg data/prediction cycle.")
     parser.add_argument("--retrain", action="store_true", help="Also retrain the model after the cycle")
     args = parser.parse_args()

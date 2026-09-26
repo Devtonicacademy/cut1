@@ -79,6 +79,15 @@ CREATE TABLE IF NOT EXISTS predictions (
     graded_at TEXT
 );
 
+-- AI-written match explanations, generated in the background (one per fixture and predicted outcome)
+CREATE TABLE IF NOT EXISTS explanations (
+    fixture_id TEXT NOT NULL,
+    pick TEXT NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (fixture_id, pick)
+);
+
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -172,6 +181,20 @@ def load_head_to_head(conn: sqlite3.Connection, team_a: str, team_b: str, limit:
         """,
         (team_a, team_b, team_b, team_a, limit),
     ).fetchall()
+
+
+def get_explanation(conn: sqlite3.Connection, fixture_id: str, pick: str) -> Optional[str]:
+    row = conn.execute(
+        "SELECT text FROM explanations WHERE fixture_id = ? AND pick = ?", (fixture_id, pick)
+    ).fetchone()
+    return row["text"] if row else None
+
+
+def save_explanation(conn: sqlite3.Connection, fixture_id: str, pick: str, text: str, created_at: str) -> None:
+    conn.execute(
+        "INSERT OR REPLACE INTO explanations (fixture_id, pick, text, created_at) VALUES (?, ?, ?, ?)",
+        (fixture_id, pick, text, created_at),
+    )
 
 
 def get_meta(conn: sqlite3.Connection, key: str) -> Optional[str]:

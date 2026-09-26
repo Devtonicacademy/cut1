@@ -1,21 +1,46 @@
+import asyncio
+import datetime as dt
 import os
-from typing import Dict, List, Optional
-from apps.api.app.models.schemas import Team
+from typing import Dict, List, Optional, Sequence
+
+from apps.api.app.data import db
+from apps.api.app.models.schemas import Fixture, Team
 
 NO_INJURY_DATA = "Injury and lineup data is not connected yet; check team news before kickoff."
+PICKS = ("1", "X", "2")
+
+
+def predicted_pick(prob_home: float, prob_draw: float, prob_away: float) -> str:
+    probs = (prob_home, prob_draw, prob_away)
+    return PICKS[max(range(3), key=lambda i: probs[i])]
+
+
+def build_prompt(f: Fixture) -> str:
+    p = f.prediction
+    home, away = f.home_team, f.away_team
+    return (
+        f"Explain a football prediction to fans in 2 short, plain sentences.\n"
+        f"Match: {home.name} (home) vs {away.name}, {f.league}.\n"
+        f"Model probabilities: {home.name} win {p.prob_home_win:.0%}, draw {p.prob_draw:.0%}, "
+        f"{away.name} win {p.prob_away_win:.0%}.\n"
+        f"Recent form (oldest to newest): {home.name} {home.form or 'n/a'}, {away.name} {away.form or 'n/a'}.\n"
+        f"Facts behind the prediction: {'; '.join(p.key_factors) or 'no strong edge either way'}.\n"
+        f"Rules: use only these facts; do not invent injuries, lineups, news or tactics; "
+        f"do not recommend a bet or a stake; say it is a probability, not a certainty."
+    )
 
 
 class GeminiAnalyzer:
     """
-    Writes a short plain-English explanation of each prediction with Google Gemini,
-    grounded only in the model's own facts (probabilities, form, key factors).
-    Without a working key it falls back to a template built from the same facts.
+    Plain-English explanation for each prediction. Page requests only read explanations
+    already saved in the database (or use a template), so they never wait on Gemini.
+    The scheduler calls explain_missing() to write new ones in the background at a
+    pace the free tier allows. Explanations are grounded only in the model's own facts.
     """
     def __init__(self):
         self.api_key = os.getenv("GEMINI_API_KEY")
         self.model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
         self.client = None
-        self._cache: Dict[tuple, Dict[str, str]] = {}  # the free tier has tight request limits
         if self.api_key:
             try:
                 from google import genai
@@ -33,34 +58,49 @@ class GeminiAnalyzer:
         prob_draw: float,
         prob_away: float,
         key_factors: Optional[List[str]] = None,
+        fixture_id: Optional[str] = None,
     ) -> Dict[str, str]:
-        """Returns {"tactical_summary", "lineup_risk"} for one match."""
-        key_factors = key_factors or []
-        if self.client:
-            cache_key = (home_team.name, away_team.name, round(prob_home, 2), round(prob_draw, 2), tuple(key_factors))
-            if cache_key in self._cache:
-                return self._cache[cache_key]
-            try:
-                prompt = (
-                    f"Explain a football prediction to fans in 2 short, plain sentences.\n"
-                    f"Match: {home_team.name} (home) vs {away_team.name}, {league}.\n"
-                    f"Model probabilities: {home_team.name} win {prob_home:.0%}, draw {prob_draw:.0%}, "
-                    f"{away_team.name} win {prob_away:.0%}.\n"
-                    f"Recent form (oldest to newest): {home_team.name} {home_team.form or 'n/a'}, "
-                    f"{away_team.name} {away_team.form or 'n/a'}.\n"
-                    f"Facts behind the prediction: {'; '.join(key_factors) or 'no strong edge either way'}.\n"
-                    f"Rules: use only these facts; do not invent injuries, lineups, news or tactics; "
-                    f"do not recommend a bet or a stake; say it is a probability, not a certainty."
-                )
-                response = self.client.models.generate_content(model=self.model, contents=prompt)
-                result = {"tactical_summary": response.text.strip(), "lineup_risk": NO_INJURY_DATA}
-                self._cache[cache_key] = result
-                return result
-            except Exception as e:
-                print(f"Gemini API call fallback to template: {e}")
-                self.client = None  # fail fast for the remaining fixtures
-
+        """Returns {"tactical_summary", "lineup_risk"}: the saved AI explanation if there is one, else the template."""
+        if fixture_id:
+            with db.connect() as conn:
+                saved = db.get_explanation(conn, fixture_id, predicted_pick(prob_home, prob_draw, prob_away))
+            if saved:
+                return {"tactical_summary": saved, "lineup_risk": NO_INJURY_DATA}
         return self._generate_heuristic_context(home_team, away_team, ev_bets, prob_home, prob_away)
+
+    async def explain_missing(
+        self, fixtures: Sequence[Fixture], max_calls: int = 30, pause_seconds: float = 4.0
+    ) -> Dict:
+        """
+        Writes explanations for upcoming fixtures that lack one for their current prediction,
+        soonest kickoff first. Stops for this round on the first error (e.g. a rate limit);
+        the next scheduler cycle simply continues.
+        """
+        if not self.client:
+            return {"written": 0, "skipped": "no working GEMINI_API_KEY"}
+        todo = []
+        with db.connect() as conn:
+            for f in sorted((f for f in fixtures if f.prediction and f.is_upcoming), key=lambda f: f.kickoff_timestamp or ""):
+                p = f.prediction
+                pick = predicted_pick(p.prob_home_win, p.prob_draw, p.prob_away_win)
+                if not db.get_explanation(conn, f.id, pick):
+                    todo.append((f, pick))
+        written = 0
+        for f, pick in todo[:max_calls]:
+            if written:
+                await asyncio.sleep(pause_seconds)
+            try:
+                response = await asyncio.to_thread(
+                    self.client.models.generate_content, model=self.model, contents=build_prompt(f)
+                )
+                text = (response.text or "").strip()
+            except Exception as e:
+                return {"written": written, "remaining": len(todo) - written, "stopped": str(e)[:200]}
+            if text:
+                with db.connect() as conn:
+                    db.save_explanation(conn, f.id, pick, text, dt.datetime.now(dt.timezone.utc).isoformat())
+                written += 1
+        return {"written": written, "remaining": len(todo) - written}
     def _generate_heuristic_context(
         self,
         home: Team,

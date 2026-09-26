@@ -174,7 +174,7 @@ def main() -> None:
     parser.add_argument("--leagues", nargs="*", help=f"Division codes, default all: {' '.join(LEAGUES)}")
     parser.add_argument("--fixtures-only", action="store_true", help="Only refresh the upcoming fixtures snapshot")
     args = parser.parse_args()
-    load_dotenv()
+    load_dotenv(db.REPO_ROOT / ".env")
 
     print(f"Database: {db.get_db_path()}")
     if not args.fixtures_only:

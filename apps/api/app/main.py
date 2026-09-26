@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
+# Always the project-root .env (a bare load_dotenv() searches upward from this file and could pick up another one)
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 import asyncio
 import secrets

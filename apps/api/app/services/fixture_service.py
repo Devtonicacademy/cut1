@@ -87,6 +87,10 @@ class FixtureService:
         self._context_cache = None
         self._enriched_cache.clear()
 
+    def refresh_explanations(self):
+        """Rebuilds only the match cards (cheap), so newly saved AI explanations show up."""
+        self._enriched_cache.clear()
+
     def _context(self) -> _Context:
         if self._context_cache and time.monotonic() - self._cache_built_at <= CACHE_TTL_SECONDS:
             return self._context_cache
@@ -145,6 +149,7 @@ class FixtureService:
         home_rating, away_rating = model.rating(home_name), model.rating(away_name)
         home_team = self._team(home_name, league.name, home_rating, recent_form(ctx.recent_history, home_name, now.date()))
         away_team = self._team(away_name, league.name, away_rating, recent_form(ctx.recent_history, away_name, now.date()))
+        fixture_id = f"{row['div'].lower()}-{row['match_date']}-{home_team.id}-{away_team.id}"
 
         probs = self.dixon_coles.calculate_match_probabilities(
             home_attack=home_rating.attack,
@@ -185,6 +190,7 @@ class FixtureService:
             prob_draw=probs["prob_draw"],
             prob_away=probs["prob_away_win"],
             key_factors=factors,
+            fixture_id=fixture_id,
         )
 
         timing = describe_kickoff(kickoff_utc, now)
@@ -193,7 +199,7 @@ class FixtureService:
         prediction.prediction_source = source
 
         return Fixture(
-            id=f"{row['div'].lower()}-{row['match_date']}-{home_team.id}-{away_team.id}",
+            id=fixture_id,
             div=row["div"],
             home_team=home_team,
             away_team=away_team,
