@@ -13,6 +13,19 @@ Internet ──HTTPS──> Caddy ──/api/*──> api  (FastAPI + scheduler,
 
 ---
 
+## Alternative: Railway (about $5/month, no server to manage)
+
+Two services built from this repo, no Caddy. The web service forwards `/api/*` to the API over Railway's private network, so there is one public address and no CORS setup.
+
+| Service | Dockerfile (`RAILWAY_DOCKERFILE_PATH`) | Volume | Variables |
+|---|---|---|---|
+| `api` | `apps/api/Dockerfile` | `/app/data` | `PORT=8000`, `RAILWAY_RUN_UID=0` (volumes mount as root), `ADMIN_TOKEN`, `FOOTBALL_DATA_KEY`, `GEMINI_API_KEY` (optional) |
+| `web` | `apps/web/Dockerfile` | none | `API_INTERNAL_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8000` |
+
+Give only `web` a public domain. Set the `api` health check path to `/api/v1/health`. Keep the API at one replica, because the scheduler runs inside it.
+
+---
+
 ## 1. Create the server (Oracle Cloud Always Free)
 
 1. Sign up at <https://www.oracle.com/cloud/free/>. A card is required for identity checks; Always Free resources are not charged.
