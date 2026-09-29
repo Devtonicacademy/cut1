@@ -13,9 +13,9 @@ COPY apps/__init__.py ./apps/__init__.py
 COPY apps/api ./apps/api
 
 # Run as an unprivileged user; the database, downloads, model and backups live in /app/data
+# (a mounted volume: docker-compose declares it; Railway rejects VOLUME in Dockerfiles)
 RUN useradd --create-home --uid 1000 app && mkdir -p /app/data && chown app:app /app/data
 USER app
-VOLUME /app/data
 
 ENV PYTHONPATH=/app \
     PYTHONUNBUFFERED=1
