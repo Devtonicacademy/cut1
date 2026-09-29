@@ -9,7 +9,10 @@ COPY apps/web ./
 
 # The API is served from the same domain under /api (see Caddyfile)
 ARG NEXT_PUBLIC_API_URL=/api/v1
+# Only for hosts without Caddy: where the web server forwards /api/* (e.g. http://api.railway.internal:8000)
+ARG API_INTERNAL_URL=
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    API_INTERNAL_URL=${API_INTERNAL_URL} \
     NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
