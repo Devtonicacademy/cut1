@@ -66,7 +66,7 @@ export default function KellyCalculator({
   const remainingBankroll = Math.max(0, bankroll - totalStaked);
 
   return (
-    <div className="bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm max-w-4xl mx-auto transition-colors duration-150">
+    <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm max-w-4xl mx-auto transition-colors duration-150">
       {/* Title & Intro */}
       <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-200 dark:border-gray-800 pb-4 mb-5">
         <div>
@@ -86,7 +86,7 @@ export default function KellyCalculator({
       </div>
 
       {/* Bankroll Slider Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 bg-slate-50 dark:bg-gray-900/60 p-4 rounded-xl border border-slate-200 dark:border-gray-800">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 bg-slate-50 dark:bg-gray-900/60 p-4 rounded-lg border border-slate-200 dark:border-gray-800">
         <div>
           <div className="flex justify-between items-center mb-1 text-xs">
             <span className="text-slate-700 dark:text-gray-300 font-semibold">Your Total Capital:</span>
@@ -139,7 +139,7 @@ export default function KellyCalculator({
 
       {/* Staking Summary Cards */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3 mb-5">
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-400">Total Staked</p>
           <p className="text-sm sm:text-lg font-black text-slate-900 dark:text-white font-mono mt-0.5">
             ₦{totalStaked.toLocaleString()}
@@ -149,7 +149,7 @@ export default function KellyCalculator({
           </p>
         </div>
 
-        <div className="bg-emerald-50 dark:bg-[#11192e] p-3 rounded-xl border border-emerald-200 dark:border-gray-800 text-center">
+        <div className="bg-emerald-50 dark:bg-[#1E293B] p-3 rounded-lg border border-emerald-200 dark:border-gray-800 text-center">
           <p className="text-[10px] uppercase font-bold text-emerald-800 dark:text-gray-400">Expected Profit</p>
           <p className="text-sm sm:text-lg font-black text-emerald-700 dark:text-emerald-400 font-mono mt-0.5">
             +₦{totalExpectedProfit.toLocaleString()}
@@ -157,7 +157,7 @@ export default function KellyCalculator({
           <p className="text-[10px] text-emerald-600 dark:text-emerald-300/80">+EV edge</p>
         </div>
 
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-400">Reserve Capital</p>
           <p className="text-sm sm:text-lg font-black text-blue-700 dark:text-blue-300 font-mono mt-0.5">
             ₦{remainingBankroll.toLocaleString()}
@@ -168,7 +168,7 @@ export default function KellyCalculator({
 
       {/* Allocation List */}
       {selectedBets.length === 0 ? (
-        <div className="text-center py-8 bg-slate-50 dark:bg-gray-900/30 rounded-xl border border-dashed border-slate-200 dark:border-gray-800">
+        <div className="text-center py-8 bg-slate-50 dark:bg-gray-900/30 rounded-lg border border-dashed border-slate-200 dark:border-gray-800">
           <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">No value bets selected yet.</p>
           <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
             Tap &quot;Stake&quot; on any match card to calculate your optimal Naira stake.
@@ -182,7 +182,7 @@ export default function KellyCalculator({
           {calculatedAllocations.map((item, idx) => (
             <div
               key={idx}
-              className="bg-slate-50 dark:bg-gray-900/80 border border-slate-200 dark:border-gray-800 p-3 rounded-xl flex flex-wrap justify-between items-center gap-3 transition-colors"
+              className="bg-slate-50 dark:bg-gray-900/80 border border-slate-200 dark:border-gray-800 p-3 rounded-lg flex flex-wrap justify-between items-center gap-3 transition-colors"
             >
               <div>
                 <div className="flex items-center gap-2">

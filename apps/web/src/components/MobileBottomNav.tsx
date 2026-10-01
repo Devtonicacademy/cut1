@@ -26,7 +26,7 @@ export default function MobileBottomNav({
     }`;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0d1322]/95 backdrop-blur-lg border-t border-slate-200 dark:border-gray-800 px-2 py-1.5 shadow-lg safe-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-surface-glass backdrop-blur-lg border-t border-slate-200 dark:border-gray-800 px-2 py-1.5 shadow-lg safe-bottom">
       <div className="flex justify-around items-center max-w-md mx-auto">
         <button onClick={() => onSelectTab("fixtures")} className={tabClass("fixtures")}>
           <Trophy className="w-5 h-5 mb-0.5" />

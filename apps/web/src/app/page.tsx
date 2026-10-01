@@ -36,7 +36,6 @@ export default function Home() {
   const [selectedLeague, setSelectedLeague] = useState<string>("All");
   const [selectedConfidence, setSelectedConfidence] = useState<string>("All");
   const [accaLoading, setAccaLoading] = useState<boolean>(false);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
   const [bankerData, setBankerData] = useState<AccumulatorResponse | null>(null);
   const [showBankerModal, setShowBankerModal] = useState<boolean>(false);
@@ -45,31 +44,6 @@ export default function Home() {
   const [verification, setVerification] = useState<ChainVerification | null>(null);
   const [modelReport, setModelReport] = useState<ModelReport | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isDark = true;
-    try {
-      const savedTheme = localStorage.getItem("livelyborg_theme");
-      if (savedTheme) isDark = savedTheme === "dark";
-    } catch {
-      // storage blocked: keep the default theme
-    }
-    setIsDarkMode(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-  }, []);
-
-  const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const next = !prev;
-      document.documentElement.classList.toggle("dark", next);
-      try {
-        localStorage.setItem("livelyborg_theme", next ? "dark" : "light");
-      } catch {
-        // storage blocked
-      }
-      return next;
-    });
-  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -168,9 +142,9 @@ export default function Home() {
 
   return (
     <AgeGate>
-      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#090d16] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0">
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0">
         {toastMessage && (
-          <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
             <Sparkles className="w-4 h-4 fill-current" />
             <span>{toastMessage}</span>
           </div>
@@ -186,15 +160,13 @@ export default function Home() {
           onOpenBankerModal={loadDailyBanker}
           onOpenAccaBuilder={(count) => buildMultiGameAcca(count)}
           showKelly={showKelly}
-          isDarkMode={isDarkMode}
-          onToggleTheme={toggleTheme}
         />
 
         <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6">
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Hero */}
-              <div className="bg-white dark:bg-gradient-to-r dark:from-[#121c33] dark:via-[#0d1424] dark:to-[#0a0f1d] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <div className="bg-white dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#111827] dark:to-[#0B0F19] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="max-w-3xl">
                   <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full mb-2.5">
                     <ShieldCheck className="w-3.5 h-3.5" />
@@ -212,7 +184,7 @@ export default function Home() {
                     <button
                       onClick={loadDailyBanker}
                       disabled={accaLoading}
-                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-black font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5"
+                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-black font-black text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
                     >
                       <Zap className="w-3.5 h-3.5 fill-current" />
                       <span>2-Odds Slip</span>
@@ -222,7 +194,7 @@ export default function Home() {
                         key={n}
                         onClick={() => buildMultiGameAcca(n)}
                         disabled={accaLoading}
-                        className="bg-white hover:bg-slate-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-gray-700 flex items-center gap-1.5"
+                        className="bg-white hover:bg-slate-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-700 flex items-center gap-1.5"
                       >
                         <Layers className="w-3.5 h-3.5" />
                         <span>{n}-Game Slip</span>
@@ -240,7 +212,7 @@ export default function Home() {
               </div>
 
               {/* Data status */}
-              <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
+              <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
                 <span>
                   <b>{fixtures.length}</b> upcoming matches in {leagues.length - 1} leagues • predictions refresh every 3 hours
                 </span>
@@ -348,7 +320,7 @@ export default function Home() {
           showKelly={showKelly}
         />
 
-        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#070b13] py-6 px-4 text-xs text-slate-500 dark:text-gray-500 text-center">
+        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#0B0F19] py-6 px-4 text-xs text-slate-500 dark:text-gray-500 text-center">
           <div className="max-w-3xl mx-auto space-y-2">
             <p className="text-slate-600 dark:text-gray-400 font-semibold">
               18+ only. Predictions are probabilities, not guarantees. Never bet more than you can afford to lose.

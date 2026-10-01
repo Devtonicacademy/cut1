@@ -43,10 +43,10 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
   };
 
   return (
-    <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
+    <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
       isSelected 
-        ? "bg-emerald-50/70 dark:bg-[#11192e] border-emerald-500 shadow-md ring-1 ring-emerald-500/30"
-        : "bg-white dark:bg-[#0d1322] border-slate-200 dark:border-gray-800 shadow-sm hover:border-slate-300 dark:hover:border-gray-700"
+        ? "bg-emerald-50/70 dark:bg-[#1E293B] border-emerald-500 shadow-md ring-1 ring-emerald-500/30"
+        : "bg-white dark:bg-[#111827] border-slate-200 dark:border-gray-800 shadow-sm hover:border-slate-300 dark:hover:border-gray-700"
     }`}>
       {/* Top Banner: League & Kickoff Date/Time */}
       <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-gray-900/70 border-b border-slate-200/80 dark:border-gray-800 flex flex-wrap justify-between items-center gap-2 text-xs">
@@ -80,7 +80,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
       <div className="p-3.5 sm:p-4">
         {/* Statistically Projected Winner Highlight */}
         {p.likely_winner_team && (
-          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-emerald-50 via-slate-50 to-slate-100 dark:from-emerald-950/50 dark:via-gray-900 dark:to-[#101726] border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
+          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-emerald-50 via-slate-50 to-slate-100 dark:from-emerald-950/50 dark:via-gray-900 dark:to-[#111827] border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <Trophy className="w-3.5 h-3.5" />
@@ -378,7 +378,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-gray-800/80 space-y-2.5 text-xs text-slate-700 dark:text-gray-300 animate-in fade-in duration-150">
             {/* Statistical Model Verdict */}
             {p.statistical_verdict && (
-              <div className="bg-emerald-50/80 dark:bg-[#121f2d] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
+              <div className="bg-emerald-50/80 dark:bg-[#1E293B] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold mb-1">
                   <Trophy className="w-3.5 h-3.5" />
                   <span>Model verdict</span>
@@ -390,7 +390,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             )}
 
             {/* Gemini Tactical Rationale */}
-            <div className="bg-slate-50 dark:bg-[#12192a] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
+            <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-gold-400 font-bold mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Match analysis</span>

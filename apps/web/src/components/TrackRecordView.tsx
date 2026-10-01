@@ -17,7 +17,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
   const graded = stats.wins + stats.losses;
 
   return (
-    <div className="bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm max-w-5xl mx-auto transition-colors duration-150">
+    <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm max-w-5xl mx-auto transition-colors duration-150">
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3 border-b border-slate-200 dark:border-gray-800 pb-4 mb-6">
         <div>
@@ -53,7 +53,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 mb-6">
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Correct picks</span>
           <p className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
             {stats.win_rate_pct.toFixed(1)}%
@@ -61,7 +61,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
           <span className="text-[10px] text-slate-500 dark:text-gray-400">{stats.wins} Won / {stats.losses} Lost</span>
         </div>
 
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Return (flat ₦1,000)</span>
           <p className="text-xl sm:text-2xl font-black text-amber-600 dark:text-gold-400 font-mono mt-0.5">
             {signedPct(stats.roi_pct)}
@@ -69,7 +69,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
           <span className="text-[10px] text-slate-500 dark:text-gray-400">if you staked ₦1,000 on every priced pick</span>
         </div>
 
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Net result</span>
           <p className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
             {signedNaira(stats.net_profit_ngn)}
@@ -77,7 +77,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
           <span className="text-[10px] text-slate-500 dark:text-gray-400">Return: ₦{stats.total_returned_ngn.toLocaleString()}</span>
         </div>
 
-        <div className="bg-slate-50 dark:bg-[#11192e] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+        <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
           <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Predictions</span>
           <p className="text-xl sm:text-2xl font-black text-blue-600 dark:text-blue-300 font-mono mt-0.5">
             {stats.total_bets}
@@ -87,7 +87,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
       </div>
 
       {/* Historical Ledger Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-gray-800">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-800">
         <table className="w-full text-left text-xs text-slate-700 dark:text-gray-300">
           <thead className="bg-slate-100 dark:bg-gray-900/90 text-slate-600 dark:text-gray-400 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-gray-800">
             <tr>
@@ -100,7 +100,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
               <th className="p-3">Details</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-gray-800/80 bg-white dark:bg-[#0a0f1c]/60">
+          <tbody className="divide-y divide-slate-200 dark:divide-gray-800/80 bg-white dark:bg-[#0B0F19]/60">
             {stats.entries.length === 0 && (
               <tr>
                 <td colSpan={7} className="p-4 text-center text-slate-500 dark:text-gray-400">

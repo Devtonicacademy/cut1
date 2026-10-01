@@ -52,11 +52,11 @@ export default function SmartAccaModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-white dark:bg-[#0e1424] border border-slate-200 dark:border-gray-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+      <div className="bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="p-4 bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-950 dark:via-gray-900 dark:to-black border-b border-emerald-500/20 dark:border-gray-800 flex justify-between items-center text-white">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-xl bg-amber-400 text-slate-900 dark:bg-gold-500/20 dark:text-gold-400">
+            <span className="p-2 rounded-lg bg-amber-400 text-slate-900 dark:bg-gold-500/20 dark:text-gold-400">
               <Zap className="w-4 h-4 fill-current" />
             </span>
             <div>
@@ -74,7 +74,7 @@ export default function SmartAccaModal({
 
         <div className="p-4 overflow-y-auto space-y-4">
           {/* Controls */}
-          <div className="bg-slate-50 dark:bg-[#121a2c] p-3 rounded-xl border border-slate-200 dark:border-gray-800 space-y-2">
+          <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 space-y-2">
             <span className="text-[11px] font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <Layers className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               <span>Number of games</span>
@@ -115,7 +115,7 @@ export default function SmartAccaModal({
           </div>
 
           {/* The honest numbers */}
-          <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-[#12192b] p-3 rounded-xl border border-slate-200 dark:border-gray-800 text-center">
+          <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
             <div>
               <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Total odds</span>
               <p className="text-lg font-black text-slate-900 dark:text-white font-mono">{data.total_odds.toFixed(2)}</p>
@@ -135,7 +135,7 @@ export default function SmartAccaModal({
           </div>
 
           {data.cut_1_warning && (
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-500/40 rounded-lg p-3 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-200">
               <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <span className="leading-relaxed">{data.cut_1_warning}</span>
             </div>
@@ -162,7 +162,7 @@ export default function SmartAccaModal({
               </button>
             </div>
             {data.legs.map((leg, index) => (
-              <div key={index} className="bg-slate-50 dark:bg-gray-900/60 border border-slate-200 dark:border-gray-800 p-2.5 rounded-xl flex justify-between items-center text-xs">
+              <div key={index} className="bg-slate-50 dark:bg-gray-900/60 border border-slate-200 dark:border-gray-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
                 <div className="min-w-0">
                   <span className="font-extrabold text-slate-900 dark:text-white block truncate">{leg.match_name}</span>
                   <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{leg.market}</span>
@@ -185,12 +185,12 @@ export default function SmartAccaModal({
           <button
             onClick={onOpenShareModal}
             disabled={data.legs.length === 0}
-            className="bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5"
+            className="bg-white dark:bg-gray-800 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5"
           >
             <Share2 className="w-3.5 h-3.5" />
             <span>Share</span>
           </button>
-          <button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2 rounded-xl">
+          <button onClick={onClose} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2 rounded-lg">
             Close
           </button>
         </div>
