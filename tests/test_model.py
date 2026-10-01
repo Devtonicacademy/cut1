@@ -63,7 +63,7 @@ def test_key_factors_are_readable_and_ranked():
 
 
 def test_fixtures_use_trained_model_and_explain_predictions():
-    fixtures = [f for f in client.get("/api/v1/fixtures").json() if f["div"] != "CL"]  # CL: see test_cross_league.py
+    fixtures = [f for f in client.get("/api/v1/fixtures").json() if f["div"] not in ("CL", "FRI")]  # see test_cross_league.py / test_national.py
     assert fixtures
     for f in fixtures:
         p = f["prediction"]

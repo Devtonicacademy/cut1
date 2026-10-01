@@ -66,3 +66,20 @@ LEAGUE_STRENGTH_OFFSET = {
 def strength_offset(country: str, tier: int) -> float:
     """Elo offset for a club: its country's top-flight offset, minus a tier step for lower divisions."""
     return LEAGUE_STRENGTH_OFFSET.get(country, -200.0) - 75.0 * (tier - 1)
+
+
+# Competitions between national teams, rated by data/national.py. The keys are our own fixture codes.
+# `neutral`: tournament finals are mostly played away from either side, so no home advantage is applied.
+class NationalCompetition(NamedTuple):
+    name: str
+    region: str
+    neutral: bool
+
+
+NATIONAL_COMPETITIONS = {
+    "UNL": NationalCompetition("UEFA Nations League", "Europe", False),
+    "AFCON": NationalCompetition("Africa Cup of Nations", "Africa", True),
+    "AFCONQ": NationalCompetition("Africa Cup of Nations Qualification", "Africa", False),
+    "ASIAN": NationalCompetition("AFC Asian Cup", "Asia", True),
+    "FRI": NationalCompetition("International Friendly", "World", False),
+}

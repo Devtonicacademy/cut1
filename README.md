@@ -10,6 +10,7 @@
 - **Honest slips**: accumulators built from predicted winners at real market prices, showing the true chance every pick wins; capped at 10 games.
 - **Value bets only if proven**: shown only when a backtest found them profitable on two separate seasons (currently switched off).
 - **Champions League (lower confidence)**: fixtures come from football-data.org (needs its free key). Clubs from different leagues are compared with domestic Elo plus hand-set league-strength offsets (`data/leagues.py`). This is not backtested, so these picks are labelled lower confidence and kept out of the track record and the accumulator builder. Clubs from leagues we hold no history for are skipped.
+- **National teams** (Nations League, AFCON and its qualifiers, Asian Cup, friendlies): rated by Elo from 49,000 international results (free open dataset). Walk-forward tested on 4,671 matches since 2022: log loss 0.879 vs 1.051 for base rates, 60% correct, well calibrated. There are no bookmaker odds to compare against, and no squad or injury data. Fixtures need a free API-Football key (`API_FOOTBALL_KEY`); like the Champions League picks they stay out of the track record and the accumulator builder.
 - **Responsible gambling**: 18+ confirmation, no booking-code or "guaranteed win" claims, support link in the footer.
 
 ## Repository structure

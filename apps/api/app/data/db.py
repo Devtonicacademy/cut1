@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS fixtures (
     PRIMARY KEY (div, match_date, home_team, away_team)
 );
 
+CREATE TABLE IF NOT EXISTS national_matches (
+    match_date TEXT NOT NULL,
+    home_team TEXT NOT NULL,
+    away_team TEXT NOT NULL,
+    fthg INTEGER NOT NULL,
+    ftag INTEGER NOT NULL,
+    tournament TEXT NOT NULL,
+    neutral INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (match_date, home_team, away_team)
+);
+
 -- Append-only prediction ledger. Each row's hash covers its prediction and the previous
 -- row's hash, so editing or deleting a past prediction breaks the chain. Only the
 -- result columns (fthg ... graded_at) are filled in after the match.
@@ -136,6 +147,20 @@ def upsert_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
     return len(data)
 
 
+NATIONAL_COLUMNS = ["match_date", "home_team", "away_team", "fthg", "ftag", "tournament", "neutral"]
+
+
+def upsert_national_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
+    placeholders = ", ".join("?" for _ in NATIONAL_COLUMNS)
+    data = [tuple(r[c] for c in NATIONAL_COLUMNS) for r in rows]
+    conn.executemany(f"INSERT OR REPLACE INTO national_matches ({', '.join(NATIONAL_COLUMNS)}) VALUES ({placeholders})", data)
+    return len(data)
+
+
+def load_national_matches(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+    return conn.execute("SELECT * FROM national_matches ORDER BY match_date").fetchall()
+
+
 def replace_fixtures(conn: sqlite3.Connection, rows: Iterable[Dict], source: str = PRIMARY_FIXTURE_SOURCE) -> int:
     """
     Replaces one source's fixture snapshot. The primary source (with odds) overrides any
@@ -216,6 +241,7 @@ def data_status(conn: sqlite3.Connection) -> Dict:
     matches = conn.execute(
         "SELECT COUNT(*) AS n, MIN(match_date) AS first, MAX(match_date) AS last FROM matches"
     ).fetchone()
+    national = conn.execute("SELECT COUNT(*) AS n, MAX(match_date) AS last FROM national_matches").fetchone()
     fixtures = conn.execute("SELECT COUNT(*) AS n FROM fixtures").fetchone()
     by_source = {r["source"]: r["n"] for r in conn.execute("SELECT source, COUNT(*) AS n FROM fixtures GROUP BY source")}
     ledger = conn.execute(
@@ -225,6 +251,8 @@ def data_status(conn: sqlite3.Connection) -> Dict:
         "historical_matches": matches["n"],
         "history_from": matches["first"],
         "history_to": matches["last"],
+        "national_matches": national["n"],
+        "national_history_to": national["last"],
         "fixtures_in_snapshot": fixtures["n"],
         "fixtures_by_source": by_source,
         "predictions_locked": ledger["n"],

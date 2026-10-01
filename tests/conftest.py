@@ -87,8 +87,17 @@ def _seed_database() -> None:
     fixtures.append({"div": "CL", "match_date": kickoff.date().isoformat(), "kickoff_utc": kickoff.isoformat(),
                      "home_team": "E0 Team 0", "away_team": "N1 Team 0", "home_div": "E0", "away_div": "N1"})
 
+    fixtures.append({"div": "FRI", "match_date": kickoff.date().isoformat(), "kickoff_utc": kickoff.isoformat(),
+                     "home_team": "Strongland", "away_team": "Weakland"})
+    national = []
+    for i in range(30):  # Strongland beats Weakland every time, plus enough games for both to count as rated
+        day = (today - dt.timedelta(days=400 - 10 * i)).isoformat()
+        national.append({"match_date": day, "home_team": "Strongland", "away_team": "Weakland", "fthg": 3, "ftag": 0,
+                         "tournament": "Friendly", "neutral": 0})
+
     with db.connect() as conn:
         db.upsert_matches(conn, matches)
+        db.upsert_national_matches(conn, national)
         db.replace_fixtures(conn, fixtures)
     _save_test_model(matches)
 
