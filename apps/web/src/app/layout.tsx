@@ -7,7 +7,10 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mono", display: "swap" });
 
 export const viewport: Viewport = {
-  themeColor: "#0b0f19",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0f19" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
-      <body className="antialiased min-h-screen flex flex-col bg-[#0B0F19] text-white">
+      <body className="antialiased min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-white transition-colors duration-150">
         {children}
       </body>
     </html>

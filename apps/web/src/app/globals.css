@@ -2,8 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Predictive Sports Intelligence: dark-only */
+/* Predictive Sports Intelligence: dark is the default, light is optional */
 :root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+}
+
+.dark {
   --background: #0b0f19;
   --foreground: #ffffff;
   --card-bg: rgba(17, 24, 39, 0.85);
@@ -44,11 +51,11 @@ body.data-saver * {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 9999px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
@@ -63,10 +70,13 @@ h1, h2, h3, h4 { font-family: var(--font-space-grotesk), "Space Grotesk", sans-s
 .tabular, [class*="tabular-nums"] { font-family: var(--font-jetbrains-mono), "JetBrains Mono", monospace; }
 
 /* Glass surfaces */
-.glass { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
-.glass-modal { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7); }
+.dark .glass { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); }
+.dark .glass-modal { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7); }
 
 /* Inputs: emerald focus ring */
-input, select, textarea { background-color: rgba(15, 23, 42, 0.8); border-color: rgba(255, 255, 255, 0.1); }
-input::placeholder, textarea::placeholder { color: #64748b; }
+.dark input, .dark select, .dark textarea { background-color: rgba(15, 23, 42, 0.8); border-color: rgba(255, 255, 255, 0.1); }
+.dark input::placeholder, .dark textarea::placeholder { color: #64748b; }
+.dark input:focus, .dark select:focus, .dark textarea:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+
+/* Light-mode focus ring keeps the emerald accent */
 input:focus, select:focus, textarea:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }

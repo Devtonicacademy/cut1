@@ -37,6 +37,8 @@ export default function Home() {
   const [selectedConfidence, setSelectedConfidence] = useState<string>("All");
   const [accaLoading, setAccaLoading] = useState<boolean>(false);
 
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+
   const [bankerData, setBankerData] = useState<AccumulatorResponse | null>(null);
   const [showBankerModal, setShowBankerModal] = useState<boolean>(false);
   const [showShareModal, setShowShareModal] = useState<boolean>(false);
@@ -44,6 +46,31 @@ export default function Home() {
   const [verification, setVerification] = useState<ChainVerification | null>(null);
   const [modelReport, setModelReport] = useState<ModelReport | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isDark = true;
+    try {
+      const savedTheme = localStorage.getItem("livelyborg_theme");
+      if (savedTheme) isDark = savedTheme === "dark";
+    } catch {
+      // storage blocked: keep the default theme
+    }
+    setIsDarkMode(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle("dark", next);
+      try {
+        localStorage.setItem("livelyborg_theme", next ? "dark" : "light");
+      } catch {
+        // storage blocked
+      }
+      return next;
+    });
+  };
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -160,6 +187,8 @@ export default function Home() {
           onOpenBankerModal={loadDailyBanker}
           onOpenAccaBuilder={(count) => buildMultiGameAcca(count)}
           showKelly={showKelly}
+          isDarkMode={isDarkMode}
+          onToggleTheme={toggleTheme}
         />
 
         <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6">

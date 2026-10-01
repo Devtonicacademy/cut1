@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, Database, Layers } from "lucide-react";
+import { Zap, Database, Layers, Sun, Moon } from "lucide-react";
 
 interface HeaderProps {
   bankroll: number;
@@ -13,6 +13,8 @@ interface HeaderProps {
   onOpenBankerModal: () => void;
   onOpenAccaBuilder?: (targetLegs: number) => void;
   showKelly: boolean;
+  isDarkMode: boolean;
+  onToggleTheme: () => void;
 }
 
 export default function Header({
@@ -25,6 +27,8 @@ export default function Header({
   onOpenBankerModal,
   onOpenAccaBuilder,
   showKelly,
+  isDarkMode,
+  onToggleTheme,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-surface-glass backdrop-blur-md border-b border-slate-200 dark:border-gray-800 transition-colors duration-150">
@@ -61,6 +65,19 @@ export default function Header({
 
         {/* Center / Right Action Group */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
+          {/* Light / Dark Mode Toggle */}
+          <button
+            onClick={onToggleTheme}
+            className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 transition-colors shadow-2xs"
+            title={isDarkMode ? "Switch to Clean Light Mode" : "Switch to Dark Mode"}
+            aria-label="Toggle theme"
+          >
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 text-amber-400 animate-in spin-in-90 duration-200" />
+            ) : (
+              <Moon className="w-4 h-4 text-slate-700 animate-in spin-in-90 duration-200" />
+            )}
+          </button>
 
           {/* Data Saver Mode Toggle */}
           <button
