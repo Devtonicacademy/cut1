@@ -18,7 +18,8 @@ MATCH_COLUMNS = (
     ["div", "season", "match_date", "kickoff_utc", "home_team", "away_team", "fthg", "ftag"]
     + STAT_COLUMNS + ODDS_COLUMNS + CLOSING_ODDS_COLUMNS
 )
-FIXTURE_COLUMNS = ["div", "match_date", "kickoff_utc", "home_team", "away_team", "source"] + ODDS_COLUMNS
+# home_div / away_div: each club's domestic division, filled for cross-country competitions (e.g. "CL")
+FIXTURE_COLUMNS = ["div", "match_date", "kickoff_utc", "home_team", "away_team", "source", "home_div", "away_div"] + ODDS_COLUMNS
 PRIMARY_FIXTURE_SOURCE = "football-data.co.uk"  # has odds, and wins when two sources list the same match
 
 _SCHEMA = f"""
@@ -46,8 +47,21 @@ CREATE TABLE IF NOT EXISTS fixtures (
     home_team TEXT NOT NULL,
     away_team TEXT NOT NULL,
     source TEXT NOT NULL DEFAULT '{PRIMARY_FIXTURE_SOURCE}',
+    home_div TEXT,
+    away_div TEXT,
     {", ".join(f"{c} REAL" for c in ODDS_COLUMNS)},
     PRIMARY KEY (div, match_date, home_team, away_team)
+);
+
+CREATE TABLE IF NOT EXISTS national_matches (
+    match_date TEXT NOT NULL,
+    home_team TEXT NOT NULL,
+    away_team TEXT NOT NULL,
+    fthg INTEGER NOT NULL,
+    ftag INTEGER NOT NULL,
+    tournament TEXT NOT NULL,
+    neutral INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (match_date, home_team, away_team)
 );
 
 -- Append-only prediction ledger. Each row's hash covers its prediction and the previous
@@ -120,6 +134,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     fixture_cols = {r["name"] for r in conn.execute("PRAGMA table_info(fixtures)")}
     if "source" not in fixture_cols:
         conn.execute(f"ALTER TABLE fixtures ADD COLUMN source TEXT NOT NULL DEFAULT '{PRIMARY_FIXTURE_SOURCE}'")
+    for col in ("home_div", "away_div"):
+        if col not in fixture_cols:
+            conn.execute(f"ALTER TABLE fixtures ADD COLUMN {col} TEXT")
 
 
 def upsert_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
@@ -128,6 +145,20 @@ def upsert_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
     data = [tuple(r.get(c) for c in MATCH_COLUMNS) for r in rows]
     conn.executemany(sql, data)
     return len(data)
+
+
+NATIONAL_COLUMNS = ["match_date", "home_team", "away_team", "fthg", "ftag", "tournament", "neutral"]
+
+
+def upsert_national_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
+    placeholders = ", ".join("?" for _ in NATIONAL_COLUMNS)
+    data = [tuple(r[c] for c in NATIONAL_COLUMNS) for r in rows]
+    conn.executemany(f"INSERT OR REPLACE INTO national_matches ({', '.join(NATIONAL_COLUMNS)}) VALUES ({placeholders})", data)
+    return len(data)
+
+
+def load_national_matches(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+    return conn.execute("SELECT * FROM national_matches ORDER BY match_date").fetchall()
 
 
 def replace_fixtures(conn: sqlite3.Connection, rows: Iterable[Dict], source: str = PRIMARY_FIXTURE_SOURCE) -> int:
@@ -210,6 +241,7 @@ def data_status(conn: sqlite3.Connection) -> Dict:
     matches = conn.execute(
         "SELECT COUNT(*) AS n, MIN(match_date) AS first, MAX(match_date) AS last FROM matches"
     ).fetchone()
+    national = conn.execute("SELECT COUNT(*) AS n, MAX(match_date) AS last FROM national_matches").fetchone()
     fixtures = conn.execute("SELECT COUNT(*) AS n FROM fixtures").fetchone()
     by_source = {r["source"]: r["n"] for r in conn.execute("SELECT source, COUNT(*) AS n FROM fixtures GROUP BY source")}
     ledger = conn.execute(
@@ -219,6 +251,8 @@ def data_status(conn: sqlite3.Connection) -> Dict:
         "historical_matches": matches["n"],
         "history_from": matches["first"],
         "history_to": matches["last"],
+        "national_matches": national["n"],
+        "national_history_to": national["last"],
         "fixtures_in_snapshot": fixtures["n"],
         "fixtures_by_source": by_source,
         "predictions_locked": ledger["n"],

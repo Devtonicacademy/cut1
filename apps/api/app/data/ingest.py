@@ -16,15 +16,19 @@ from typing import Dict, List, Optional
 import httpx
 from dotenv import load_dotenv
 
+from apps.api.app.data import api_football
 from apps.api.app.data import db
 from apps.api.app.data import football_data_org as fdorg
 from apps.api.app.data import football_data_uk as fduk
+from apps.api.app.data import national
 from apps.api.app.data.leagues import LEAGUES
 
 RAW_CACHE_DIR = db.REPO_ROOT / "data" / "raw"
 REQUEST_PAUSE_SECONDS = 0.4  # be polite to a free, volunteer-run source
 FD_ORG_PAUSE_SECONDS = 6.5  # free tier allows 10 requests per minute
 FD_ORG_REFRESH_HOURS = 6
+API_FOOTBALL_REFRESH_HOURS = 6  # 5 requests per refresh, well inside the free 100 a day
+NATIONAL_REFRESH_HOURS = 24
 USER_AGENT = "LivelyBorg/0.1 (football prediction research)"
 
 
@@ -108,6 +112,17 @@ def _recent_team_names(conn, div: str, seasons_back: int = 3) -> List[str]:
     return [r[0] for r in rows]
 
 
+def _team_divisions(conn, seasons_back: int = 3) -> Dict[str, str]:
+    """Our team names -> the division they most recently played in, across every league we hold."""
+    since = (dt.date.today() - dt.timedelta(days=365 * seasons_back)).isoformat()
+    rows = conn.execute(
+        "SELECT home_team AS team, div, match_date FROM matches WHERE match_date >= ? "
+        "UNION ALL SELECT away_team, div, match_date FROM matches WHERE match_date >= ? ORDER BY match_date",
+        (since, since),
+    ).fetchall()
+    return {r["team"]: r["div"] for r in rows}  # later rows overwrite: the most recent division wins
+
+
 def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
     """Scheduled matches for the next `days_ahead` days from football-data.org (needs FOOTBALL_DATA_KEY)."""
     key = os.getenv("FOOTBALL_DATA_KEY")
@@ -115,8 +130,11 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
         return {"skipped": "FOOTBALL_DATA_KEY not set"}
     today = dt.date.today()
     rows, unmatched, errors = [], {}, []
+    competitions = [(code, div, False) for code, div in fdorg.COMPETITIONS.items()]
+    competitions += [(code, comp, True) for code, comp in fdorg.EUROPEAN_COMPETITIONS.items()]
     with _client() as client, db.connect() as conn:
-        for i, (code, div) in enumerate(fdorg.COMPETITIONS.items()):
+        team_divs = _team_divisions(conn)
+        for i, (code, div, cross_country) in enumerate(competitions):
             if i:
                 time.sleep(FD_ORG_PAUSE_SECONDS)
             try:
@@ -126,13 +144,61 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
             except httpx.HTTPError as e:
                 errors.append(f"{code}: {e}")
                 continue
-            parsed, missing = fdorg.parse_matches(response.json(), div, _recent_team_names(conn, div))
+            if cross_country:
+                parsed, missing = fdorg.parse_cross_country_matches(response.json(), div, team_divs)
+            else:
+                parsed, missing = fdorg.parse_matches(response.json(), div, _recent_team_names(conn, div))
             rows += parsed
             if missing:
                 unmatched[code] = missing
         count = db.replace_fixtures(conn, rows, source=fdorg.SOURCE)
         db.set_meta(conn, "last_fdorg_refresh", _now_utc().isoformat())
         db.set_meta(conn, "fdorg_unmatched_teams", json.dumps(unmatched))
+    return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}
+
+
+def ingest_national_history() -> Dict:
+    """Downloads the full international results file (about 3 MB) into the national_matches table."""
+    with _client() as client:
+        response = client.get(national.RESULTS_URL)
+        response.raise_for_status()
+    rows = national.parse_results_csv(response.text)
+    with db.connect() as conn:
+        count = db.upsert_national_matches(conn, rows)
+        db.set_meta(conn, "last_national_refresh", _now_utc().isoformat())
+    return {"matches": count}
+
+
+def ingest_api_football_fixtures(days_ahead: int = 14) -> Dict:
+    """Upcoming national-team games for the next `days_ahead` days (needs API_FOOTBALL_KEY)."""
+    key = os.getenv("API_FOOTBALL_KEY")
+    if not key:
+        return {"skipped": "API_FOOTBALL_KEY not set"}
+    today = dt.date.today()
+    rows, unmatched, errors = [], {}, []
+    with _client() as client, db.connect() as conn:
+        names = {r["home_team"] for r in db.load_national_matches(conn)} | \
+                {r["away_team"] for r in db.load_national_matches(conn)}
+        for league_id, comp in api_football.COMPETITIONS.items():
+            try:
+                response = client.get(
+                    api_football.fixtures_url(league_id, today.year, today, today + dt.timedelta(days=days_ahead)),
+                    headers={"x-apisports-key": key})
+                response.raise_for_status()
+                payload = response.json()
+            except (httpx.HTTPError, ValueError) as e:
+                errors.append(f"{comp}: {e}")
+                continue
+            if payload.get("errors"):  # the API reports plan limits in the body, with HTTP 200
+                errors.append(f"{comp}: {payload['errors']}")
+                continue
+            parsed, missing = api_football.parse_fixtures(payload, comp, names)
+            rows += parsed
+            if missing:
+                unmatched[comp] = missing
+        count = db.replace_fixtures(conn, rows, source=api_football.SOURCE)
+        db.set_meta(conn, "last_api_football_refresh", _now_utc().isoformat())
+        db.set_meta(conn, "api_football_unmatched_teams", json.dumps(unmatched))
     return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}
 
 
@@ -151,12 +217,21 @@ def refresh(min_interval_minutes: int = 10) -> Dict:
     with db.connect() as conn:
         recent = not _older_than(conn, "last_fixtures_refresh", dt.timedelta(minutes=min_interval_minutes))
         fdorg_due = _older_than(conn, "last_fdorg_refresh", dt.timedelta(hours=FD_ORG_REFRESH_HOURS))
+        national_due = _older_than(conn, "last_national_refresh", dt.timedelta(hours=NATIONAL_REFRESH_HOURS))
+        apif_due = _older_than(conn, "last_api_football_refresh", dt.timedelta(hours=API_FOOTBALL_REFRESH_HOURS))
     if recent:
         return {"skipped": f"refreshed less than {min_interval_minutes} minutes ago"}
 
     result = {"history": ingest_history(seasons=1), "fixtures": ingest_fixtures()}
     if fdorg_due:
         result["football_data_org"] = ingest_fd_org_fixtures()
+    for name, due, fn in (("national_history", national_due, ingest_national_history),
+                          ("api_football", apif_due, ingest_api_football_fixtures)):
+        if due:
+            try:
+                result[name] = fn()
+            except (httpx.HTTPError, ValueError) as e:  # a failing optional source must not stop the cycle
+                result[name] = {"error": str(e)}
     return result
 
 
@@ -187,6 +262,8 @@ def main() -> None:
             print(f"ERROR {err}")
     print(f"Upcoming fixtures: {ingest_fixtures()}")
     print(f"football-data.org: {ingest_fd_org_fixtures()}")
+    print(f"National-team history: {ingest_national_history()}")
+    print(f"API-Football: {ingest_api_football_fixtures()}")
     with db.connect() as conn:
         print(db.data_status(conn))
 

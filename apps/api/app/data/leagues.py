@@ -32,3 +32,54 @@ LEAGUES = {
     "T1": League("Turkish Super Lig", "Turkey", 1),
     "G1": League("Greek Super League", "Greece", 1),
 }
+
+
+# Competitions that mix clubs from different countries. They have no results history of their own
+# here: predictions come from each club's domestic rating plus the league-strength offsets below.
+class EuropeanCompetition(NamedTuple):
+    name: str
+    region: str
+
+
+EUROPEAN_COMPETITIONS = {
+    "CL": EuropeanCompetition("UEFA Champions League", "Europe"),
+}
+
+# Rough Elo-point gap between each country's top division and the English Premier League, hand-set
+# from the UEFA country ranking. These are estimates, not fitted values: cross-league results are not
+# in the free data, so predictions that rely on them are shown as lower confidence.
+LEAGUE_STRENGTH_OFFSET = {
+    "England": 0.0,
+    "Spain": -10.0,
+    "Germany": -30.0,
+    "Italy": -30.0,
+    "France": -60.0,
+    "Portugal": -100.0,
+    "Netherlands": -100.0,
+    "Belgium": -130.0,
+    "Turkey": -150.0,
+    "Scotland": -160.0,
+    "Greece": -170.0,
+}
+
+
+def strength_offset(country: str, tier: int) -> float:
+    """Elo offset for a club: its country's top-flight offset, minus a tier step for lower divisions."""
+    return LEAGUE_STRENGTH_OFFSET.get(country, -200.0) - 75.0 * (tier - 1)
+
+
+# Competitions between national teams, rated by data/national.py. The keys are our own fixture codes.
+# `neutral`: tournament finals are mostly played away from either side, so no home advantage is applied.
+class NationalCompetition(NamedTuple):
+    name: str
+    region: str
+    neutral: bool
+
+
+NATIONAL_COMPETITIONS = {
+    "UNL": NationalCompetition("UEFA Nations League", "Europe", False),
+    "AFCON": NationalCompetition("Africa Cup of Nations", "Africa", True),
+    "AFCONQ": NationalCompetition("Africa Cup of Nations Qualification", "Africa", False),
+    "ASIAN": NationalCompetition("AFC Asian Cup", "Asia", True),
+    "FRI": NationalCompetition("International Friendly", "World", False),
+}

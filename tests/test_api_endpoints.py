@@ -39,7 +39,7 @@ def test_data_status_endpoint():
     assert response.status_code == 200
     status = response.json()
     assert status["historical_matches"] > 1000
-    assert status["fixtures_in_snapshot"] == 30
+    assert status["fixtures_in_snapshot"] == 32  # 30 league fixtures + 1 Champions League + 1 national-team friendly
 
 def test_bankroll_allocate_endpoint():
     # Pick a value bet from fixtures

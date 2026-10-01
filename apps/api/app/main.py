@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
 from apps.api.app.data import db, ingest
+from apps.api.app.data.leagues import LEAGUES
 from apps.api.app.models.schemas import (
     Fixture, BankrollRequest, BankrollAllocation,
     AccumulatorRequest, AccumulatorResponse,
@@ -142,6 +143,7 @@ async def build_smart_accumulator(req: AccumulatorRequest):
     and applies the Cut-1/Cut-2 Doctor insurance check.
     """
     fixtures = await fixture_service.get_all_fixtures_with_predictions(req.bankroll_ngn)
+    fixtures = [f for f in fixtures if f.div in LEAGUES]  # cross-league predictions are not backtested
     return AccasOptimizer.build_smart_accumulator(
         fixtures=fixtures,
         target_odds=req.target_odds,
