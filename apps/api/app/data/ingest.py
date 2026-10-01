@@ -108,6 +108,17 @@ def _recent_team_names(conn, div: str, seasons_back: int = 3) -> List[str]:
     return [r[0] for r in rows]
 
 
+def _team_divisions(conn, seasons_back: int = 3) -> Dict[str, str]:
+    """Our team names -> the division they most recently played in, across every league we hold."""
+    since = (dt.date.today() - dt.timedelta(days=365 * seasons_back)).isoformat()
+    rows = conn.execute(
+        "SELECT home_team AS team, div, match_date FROM matches WHERE match_date >= ? "
+        "UNION ALL SELECT away_team, div, match_date FROM matches WHERE match_date >= ? ORDER BY match_date",
+        (since, since),
+    ).fetchall()
+    return {r["team"]: r["div"] for r in rows}  # later rows overwrite: the most recent division wins
+
+
 def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
     """Scheduled matches for the next `days_ahead` days from football-data.org (needs FOOTBALL_DATA_KEY)."""
     key = os.getenv("FOOTBALL_DATA_KEY")
@@ -115,8 +126,11 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
         return {"skipped": "FOOTBALL_DATA_KEY not set"}
     today = dt.date.today()
     rows, unmatched, errors = [], {}, []
+    competitions = [(code, div, False) for code, div in fdorg.COMPETITIONS.items()]
+    competitions += [(code, comp, True) for code, comp in fdorg.EUROPEAN_COMPETITIONS.items()]
     with _client() as client, db.connect() as conn:
-        for i, (code, div) in enumerate(fdorg.COMPETITIONS.items()):
+        team_divs = _team_divisions(conn)
+        for i, (code, div, cross_country) in enumerate(competitions):
             if i:
                 time.sleep(FD_ORG_PAUSE_SECONDS)
             try:
@@ -126,7 +140,10 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
             except httpx.HTTPError as e:
                 errors.append(f"{code}: {e}")
                 continue
-            parsed, missing = fdorg.parse_matches(response.json(), div, _recent_team_names(conn, div))
+            if cross_country:
+                parsed, missing = fdorg.parse_cross_country_matches(response.json(), div, team_divs)
+            else:
+                parsed, missing = fdorg.parse_matches(response.json(), div, _recent_team_names(conn, div))
             rows += parsed
             if missing:
                 unmatched[code] = missing

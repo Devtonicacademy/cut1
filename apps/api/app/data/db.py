@@ -18,7 +18,8 @@ MATCH_COLUMNS = (
     ["div", "season", "match_date", "kickoff_utc", "home_team", "away_team", "fthg", "ftag"]
     + STAT_COLUMNS + ODDS_COLUMNS + CLOSING_ODDS_COLUMNS
 )
-FIXTURE_COLUMNS = ["div", "match_date", "kickoff_utc", "home_team", "away_team", "source"] + ODDS_COLUMNS
+# home_div / away_div: each club's domestic division, filled for cross-country competitions (e.g. "CL")
+FIXTURE_COLUMNS = ["div", "match_date", "kickoff_utc", "home_team", "away_team", "source", "home_div", "away_div"] + ODDS_COLUMNS
 PRIMARY_FIXTURE_SOURCE = "football-data.co.uk"  # has odds, and wins when two sources list the same match
 
 _SCHEMA = f"""
@@ -46,6 +47,8 @@ CREATE TABLE IF NOT EXISTS fixtures (
     home_team TEXT NOT NULL,
     away_team TEXT NOT NULL,
     source TEXT NOT NULL DEFAULT '{PRIMARY_FIXTURE_SOURCE}',
+    home_div TEXT,
+    away_div TEXT,
     {", ".join(f"{c} REAL" for c in ODDS_COLUMNS)},
     PRIMARY KEY (div, match_date, home_team, away_team)
 );
@@ -120,6 +123,9 @@ def _migrate(conn: sqlite3.Connection) -> None:
     fixture_cols = {r["name"] for r in conn.execute("PRAGMA table_info(fixtures)")}
     if "source" not in fixture_cols:
         conn.execute(f"ALTER TABLE fixtures ADD COLUMN source TEXT NOT NULL DEFAULT '{PRIMARY_FIXTURE_SOURCE}'")
+    for col in ("home_div", "away_div"):
+        if col not in fixture_cols:
+            conn.execute(f"ALTER TABLE fixtures ADD COLUMN {col} TEXT")
 
 
 def upsert_matches(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:

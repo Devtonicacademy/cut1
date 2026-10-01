@@ -6,11 +6,13 @@ from zoneinfo import ZoneInfo
 
 from apps.api.app.data import db
 from apps.api.app.data.football_data_uk import current_season_start
-from apps.api.app.data.leagues import LEAGUES
+from apps.api.app.data.leagues import EUROPEAN_COMPETITIONS, LEAGUES
 from apps.api.app.data.ratings import (
     WINDOW_DAYS, LeagueHistory, LeagueModel, TeamRating, recent_form
 )
-from apps.api.app.ml.features import FeatureState, dc_features, market_features, replay_history, season_of
+from apps.api.app.ml.features import (
+    ELO_HOME_ADVANTAGE, FeatureState, dc_features, elo_outcome_probs, market_features, replay_history, season_of
+)
 from apps.api.app.ml.predictor import MatchPredictor, key_factors
 from apps.api.app.models.schemas import (
     BookmakerOdds, Fixture, HeadToHeadMatch, HeadToHeadStats, MarketType, PredictionDetail, Team
@@ -24,6 +26,8 @@ CACHE_TTL_SECONDS = 15 * 60
 H2H_RECENT_MATCHES = 5
 # Used only for a division with no history in the database yet.
 FALLBACK_HOME_GOALS, FALLBACK_AWAY_GOALS = 1.45, 1.15
+CROSS_LEAGUE_SOURCE = "League-adjusted Elo estimate (cross-league, not backtested: lower confidence)"
+CROSS_LEAGUE_NOTE = "Clubs from different leagues: rated with hand-set league-strength offsets, treat with extra caution"
 
 
 def describe_kickoff(kickoff_utc: dt.datetime, now_utc: dt.datetime) -> dict:
@@ -110,7 +114,10 @@ class FixtureService:
             }
 
         league_models = {}
-        for div in {r["div"] for r in fixture_rows}:
+        divs = {r["div"] for r in fixture_rows if r["div"] in LEAGUES}
+        for r in fixture_rows:  # cross-country fixtures need each club's own league model
+            divs.update(d for d in (r.get("home_div"), r.get("away_div")) if d in LEAGUES)
+        for div in divs:
             league_models[div] = LeagueHistory(div, recent).fit(today, season_start) or LeagueModel(
                 div=div, avg_home_goals=FALLBACK_HOME_GOALS, avg_away_goals=FALLBACK_AWAY_GOALS
             )
@@ -142,6 +149,8 @@ class FixtureService:
         return None
 
     async def _build_fixture(self, row: Mapping, ctx: _Context, bankroll_ngn: float) -> Fixture:
+        if row["div"] in EUROPEAN_COMPETITIONS:
+            return await self._build_cross_league_fixture(row, ctx, bankroll_ngn)
         now = ctx.now
         model = ctx.league_models[row["div"]]
         league = LEAGUES[row["div"]]
@@ -208,6 +217,62 @@ class FixtureService:
             sportybet_odds=market_avg,
             bet9ja_odds=best_price,
             prediction=prediction,
+            h2h=self._h2h(home_name, away_name, ctx.h2h_by_pair[(home_name, away_name)]),
+            **timing,
+        )
+
+    async def _build_cross_league_fixture(self, row: Mapping, ctx: _Context, bankroll_ngn: float) -> Fixture:
+        """
+        A match between clubs of different leagues (e.g. the Champions League). The trained model is
+        not used: its Dixon-Coles and league-table inputs only make sense inside one league. Instead
+        the win/draw/loss split comes from league-adjusted Elo, and goal markets from neutral ratings
+        shifted by the same gap. Not backtested, so it is labelled lower confidence and kept out of
+        the verified track record and the accumulator builder.
+        """
+        now = ctx.now
+        competition = EUROPEAN_COMPETITIONS[row["div"]]
+        home_name, away_name = row["home_team"], row["away_team"]
+        home_div, away_div = row["home_div"], row["away_div"]
+        home_model, away_model = ctx.league_models[home_div], ctx.league_models[away_div]
+        home_rating, away_rating = home_model.rating(home_name), away_model.rating(away_name)
+        home_team = self._team(home_name, LEAGUES[home_div].name, home_rating, recent_form(ctx.recent_history, home_name, now.date()))
+        away_team = self._team(away_name, LEAGUES[away_div].name, away_rating, recent_form(ctx.recent_history, away_name, now.date()))
+        fixture_id = f"{row['div'].lower()}-{row['match_date']}-{home_team.id}-{away_team.id}"
+
+        kickoff_utc = dt.datetime.fromisoformat(row["kickoff_utc"])
+        features = ctx.feature_state.cross_league_features(
+            home_div, away_div, home_name, away_name, kickoff_utc.date()
+        ) if ctx.feature_state is not None else {"elo_diff": 0.0}
+        p_home, p_draw, p_away = elo_outcome_probs(features["elo_diff"] + ELO_HOME_ADVANTAGE)
+
+        # Goal markets: league-average scoring, tilted by the Elo gap (about 0.3 goals per 100 points).
+        tilt = 10 ** (features["elo_diff"] / 800.0)
+        probs = self.dixon_coles.calculate_match_probabilities(
+            home_attack=tilt ** 0.5, away_defense=1.0, away_attack=tilt ** -0.5, home_defense=1.0,
+            league_home_advantage=1.0, league_avg_goals_home=FALLBACK_HOME_GOALS, league_avg_goals_away=FALLBACK_AWAY_GOALS,
+        )
+        probs.update(
+            prob_home_win=round(p_home, 4), prob_draw=round(p_draw, 4), prob_away_win=round(p_away, 4),
+            fair_odds_home=round(1 / p_home, 2), fair_odds_draw=round(1 / p_draw, 2), fair_odds_away=round(1 / p_away, 2),
+        )
+        factors = [CROSS_LEAGUE_NOTE] + key_factors(features, home_name, away_name, limit=3)
+        fair = (probs["fair_odds_home"], probs["fair_odds_draw"], probs["fair_odds_away"])
+        market_avg = self._odds(row, "avg", "Market Average", fair)
+        best_price = self._odds(row, "max", "Best Price", fair)
+        context = await self.gemini.analyze_matchup_context(
+            home_team=home_team, away_team=away_team, league=competition.name, ev_bets=[],
+            prob_home=probs["prob_home_win"], prob_draw=probs["prob_draw"], prob_away=probs["prob_away_win"],
+            key_factors=factors, fixture_id=fixture_id,
+        )
+
+        timing = describe_kickoff(kickoff_utc, now)
+        prediction = self._prediction(home_team, away_team, competition.name, timing["kickoff"], probs, [], context)
+        prediction.key_factors = factors
+        prediction.prediction_source = CROSS_LEAGUE_SOURCE
+        return Fixture(
+            id=fixture_id, div=row["div"], home_team=home_team, away_team=away_team,
+            league=competition.name, venue=competition.region,
+            sportybet_odds=market_avg, bet9ja_odds=best_price, prediction=prediction,
             h2h=self._h2h(home_name, away_name, ctx.h2h_by_pair[(home_name, away_name)]),
             **timing,
         )

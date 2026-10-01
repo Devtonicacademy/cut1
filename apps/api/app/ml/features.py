@@ -11,7 +11,7 @@ from itertools import groupby
 from typing import Dict, List, Mapping, Optional, Tuple
 
 from apps.api.app.data.football_data_uk import current_season_start, season_code
-from apps.api.app.data.leagues import LEAGUES
+from apps.api.app.data.leagues import LEAGUES, strength_offset
 from apps.api.app.data.ratings import LeagueHistory, LeagueModel
 from apps.api.app.services.dixon_coles import DixonColesEngine
 
@@ -49,6 +49,19 @@ _dc_engine = DixonColesEngine()
 
 def elo_expected(diff: float) -> float:
     return 1.0 / (1.0 + 10 ** (-diff / 400.0))
+
+
+CROSS_DRAW_RATE = 0.27  # share of evenly matched games that end level in the domestic data
+
+
+def elo_outcome_probs(diff: float) -> Tuple[float, float, float]:
+    """
+    (home, draw, away) from an Elo gap that already includes home advantage. The Elo expectation is
+    win + half the draw; the draw share shrinks as the gap grows, so mismatches rarely end level.
+    """
+    expected = elo_expected(diff)
+    draw = CROSS_DRAW_RATE * (1 - (2 * expected - 1) ** 2)
+    return expected - draw / 2, draw, 1 - expected - draw / 2
 
 
 def season_of(day: dt.date) -> str:
@@ -159,6 +172,23 @@ class FeatureState:
             f["h2h_gd_home"] = gd / len(meetings)
         else:
             f["h2h_ppg_home"] = f["h2h_gd_home"] = None
+        return f
+
+    def cross_league_features(self, home_div: str, away_div: str, home: str, away: str, day: dt.date) -> Dict:
+        """
+        Features for a match between clubs of different leagues. Each club keeps its own domestic Elo,
+        shifted by its league's strength offset so the two are comparable. League tables, Dixon-Coles
+        ratings and shot counts are domestic-only, so they are left out.
+        """
+        h, a = self._team(home_div, home), self._team(away_div, away)
+        h_offset = strength_offset(LEAGUES[home_div].country, LEAGUES[home_div].tier)
+        a_offset = strength_offset(LEAGUES[away_div].country, LEAGUES[away_div].tier)
+        diff = (h.elo + h_offset) - (a.elo + a_offset)
+        ordinal = day.toordinal()
+        f: Dict[str, Optional[float]] = {"elo_diff": diff, "elo_exp_home": elo_expected(diff + ELO_HOME_ADVANTAGE)}
+        for side, t in (("home", h), ("away", a)):
+            f[f"{side}_form_pts"] = t.ewm.get("pts")
+            f[f"{side}_rest_days"] = min(REST_CAP_DAYS, ordinal - t.last_day) if t.last_day else REST_CAP_DAYS
         return f
 
     def update(self, m: Mapping) -> None:

@@ -16,6 +16,10 @@ API_URL = "https://api.football-data.org/v4"
 SOURCE = "football-data.org"
 # football-data.org competition code -> football-data.co.uk division (free-tier competitions only)
 COMPETITIONS = {"PL": "E0", "ELC": "E1", "PD": "SP1", "SA": "I1", "BL1": "D1", "FL1": "F1", "DED": "N1", "PPL": "P1"}
+# Cross-country competitions: football-data.org code -> our competition code. Clubs are matched against
+# every league we hold history for, so the bar is higher than within one country.
+EUROPEAN_COMPETITIONS = {"CL": "CL"}
+CROSS_COUNTRY_THRESHOLD = 0.85
 MATCH_THRESHOLD = 0.72
 
 # Names too different for fuzzy matching: football-data.org full name -> football-data.co.uk name
@@ -72,7 +76,9 @@ def similarity(a: str, b: str) -> float:
     return difflib.SequenceMatcher(None, na, nb).ratio()
 
 
-def match_teams(fd_teams: Iterable[Mapping], candidates: Iterable[str]) -> Tuple[Dict[int, str], List[str]]:
+def match_teams(
+    fd_teams: Iterable[Mapping], candidates: Iterable[str], threshold: float = MATCH_THRESHOLD
+) -> Tuple[Dict[int, str], List[str]]:
     """
     Maps football-data.org teams to our team names. Overrides first, then the best
     fuzzy pairs, each of our names used at most once. Returns (mapping, unmatched names).
@@ -94,7 +100,7 @@ def match_teams(fd_teams: Iterable[Mapping], candidates: Iterable[str]) -> Tuple
             pairs.append((max(similarity(label, cand) for label in labels), team_id, cand))
     used = set(mapping.values())
     for score, team_id, cand in sorted(pairs, reverse=True):
-        if score < MATCH_THRESHOLD:
+        if score < threshold:
             break
         if team_id not in mapping and cand not in used:
             mapping[team_id] = cand
@@ -120,6 +126,36 @@ def parse_matches(payload: Mapping, div: str, candidates: Iterable[str]) -> Tupl
             "kickoff_utc": kickoff.isoformat(),
             "home_team": home,
             "away_team": away,
+            "source": SOURCE,
+        })
+    return rows, unmatched
+
+
+def parse_cross_country_matches(
+    payload: Mapping, comp: str, team_divs: Mapping[str, str]
+) -> Tuple[List[Dict], List[str]]:
+    """
+    Scheduled matches of a cross-country competition -> fixture rows tagged with each club's domestic
+    division. `team_divs` maps our team names to a division. Matches where either club has no history
+    in our leagues are dropped, because there is nothing to rate them with; those clubs are returned.
+    """
+    matches = [m for m in payload.get("matches", []) if m.get("status") in ("SCHEDULED", "TIMED")]
+    fd_teams = {t["id"]: t for m in matches for t in (m["homeTeam"], m["awayTeam"]) if t.get("id")}
+    mapping, unmatched = match_teams(fd_teams.values(), team_divs, CROSS_COUNTRY_THRESHOLD)
+    rows = []
+    for m in matches:
+        home, away = mapping.get(m["homeTeam"].get("id")), mapping.get(m["awayTeam"].get("id"))
+        if not home or not away:
+            continue
+        kickoff = dt.datetime.fromisoformat(m["utcDate"].replace("Z", "+00:00"))
+        rows.append({
+            "div": comp,
+            "match_date": kickoff.astimezone(UK_TZ).date().isoformat(),
+            "kickoff_utc": kickoff.isoformat(),
+            "home_team": home,
+            "away_team": away,
+            "home_div": team_divs[home],
+            "away_div": team_divs[away],
             "source": SOURCE,
         })
     return rows, unmatched

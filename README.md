@@ -9,6 +9,7 @@
 - **Verified track record**: predictions lock within 36 hours of kickoff into a hash-chained ledger and are graded automatically; nothing can be edited unnoticed.
 - **Honest slips**: accumulators built from predicted winners at real market prices, showing the true chance every pick wins; capped at 10 games.
 - **Value bets only if proven**: shown only when a backtest found them profitable on two separate seasons (currently switched off).
+- **Champions League (lower confidence)**: fixtures come from football-data.org (needs its free key). Clubs from different leagues are compared with domestic Elo plus hand-set league-strength offsets (`data/leagues.py`). This is not backtested, so these picks are labelled lower confidence and kept out of the track record and the accumulator builder. Clubs from leagues we hold no history for are skipped.
 - **Responsible gambling**: 18+ confirmation, no booking-code or "guaranteed win" claims, support link in the footer.
 
 ## Repository structure

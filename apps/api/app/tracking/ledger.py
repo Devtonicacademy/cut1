@@ -13,6 +13,7 @@ import json
 import sqlite3
 from typing import Dict, Iterable, List, Optional
 
+from apps.api.app.data.leagues import LEAGUES
 from apps.api.app.models.schemas import BetStatus, Fixture, TrackRecordEntry, TrackRecordStats
 
 LOCK_WINDOW_HOURS = 36
@@ -43,7 +44,7 @@ def lock_predictions(conn: sqlite3.Connection, fixtures: Iterable[Fixture], now:
     prev_hash = _last_hash(conn)
     locked = 0
     upcoming = sorted(
-        (f for f in fixtures if f.prediction and f.kickoff_timestamp and f.div),
+        (f for f in fixtures if f.prediction and f.kickoff_timestamp and f.div in LEAGUES),  # cross-league picks are unvalidated
         key=lambda f: f.kickoff_timestamp,
     )
     for f in upcoming:

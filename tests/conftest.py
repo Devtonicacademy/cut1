@@ -83,6 +83,10 @@ def _seed_database() -> None:
                              "home_team": home, "away_team": away,
                              **_odds_columns(engine, attack, defence, home, away)})
 
+    kickoff = now + dt.timedelta(days=2, hours=3)
+    fixtures.append({"div": "CL", "match_date": kickoff.date().isoformat(), "kickoff_utc": kickoff.isoformat(),
+                     "home_team": "E0 Team 0", "away_team": "N1 Team 0", "home_div": "E0", "away_div": "N1"})
+
     with db.connect() as conn:
         db.upsert_matches(conn, matches)
         db.replace_fixtures(conn, fixtures)
