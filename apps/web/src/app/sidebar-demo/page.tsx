@@ -28,13 +28,15 @@ function buildMockFixtures(): MockFixture[] {
   ];
 }
 
+const kickoffOf = (m: MockFixture) => m.kickoff;
+
 const fmt = (iso: string) =>
   new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export default function SidebarDemo() {
   const fixtures = useMemo(buildMockFixtures, []);
   const { filters, visible, leagueCounts, activeCount, toggleLeague, setDatePreset, setCustomDate, reset } =
-    useFixtureFilters(fixtures);
+    useFixtureFilters(fixtures, kickoffOf);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-3.5 py-6 sm:px-6">

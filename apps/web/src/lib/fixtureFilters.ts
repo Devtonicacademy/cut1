@@ -28,8 +28,10 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 export const toDateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-export function matchesDate(kickoff: string, f: FixtureFilters, now: Date = new Date()): boolean {
+export function matchesDate(kickoff: string | undefined, f: FixtureFilters, now: Date = new Date()): boolean {
   if (f.datePreset === "all") return true;
+  // No kick-off time means we cannot place it on a date, so a date filter hides it.
+  if (!kickoff) return false;
   const day = startOfDay(new Date(kickoff)).getTime();
   const today = startOfDay(now).getTime();
   switch (f.datePreset) {
@@ -49,10 +51,10 @@ export function matchesDate(kickoff: string, f: FixtureFilters, now: Date = new 
  * Filter state for a fixture list. League counts are computed from the date-filtered
  * fixtures, so the numbers beside each league always match what ticking it would show.
  */
-export function useFixtureFilters(fixtures: MockFixture[]) {
+export function useFixtureFilters<T extends { league: string }>(fixtures: T[], getKickoff: (item: T) => string | undefined) {
   const [filters, setFilters] = useState<FixtureFilters>(DEFAULT_FILTERS);
 
-  const dateFiltered = useMemo(() => fixtures.filter((m) => matchesDate(m.kickoff, filters)), [fixtures, filters]);
+  const dateFiltered = useMemo(() => fixtures.filter((m) => matchesDate(getKickoff(m), filters)), [fixtures, filters, getKickoff]);
 
   const leagueCounts = useMemo(() => {
     const counts = new Map<string, number>();
