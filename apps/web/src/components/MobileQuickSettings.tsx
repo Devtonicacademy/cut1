@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Database, Moon, Sun } from "lucide-react";
+import AccountMenu from "@/components/auth/AccountMenu";
 
 interface MobileQuickSettingsProps {
   bankroll: number;
@@ -10,6 +11,7 @@ interface MobileQuickSettingsProps {
   onToggleDataSaver: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  onNavigate: (tab: "dashboard" | "admin") => void;
 }
 
 const BANKROLLS = [5000, 10000, 20000, 50000, 100000];
@@ -22,6 +24,7 @@ export default function MobileQuickSettings({
   onToggleDataSaver,
   isDarkMode,
   onToggleTheme,
+  onNavigate,
 }: MobileQuickSettingsProps) {
   const iconBtn =
     "rounded-lg border border-slate-200 bg-white p-2 text-slate-700 dark:border-glass dark:bg-slate-800 dark:text-gray-200";
@@ -57,6 +60,7 @@ export default function MobileQuickSettings({
         >
           <Database className="h-4 w-4" />
         </button>
+        <AccountMenu onNavigate={onNavigate} />
         <button onClick={onToggleTheme} aria-label="Toggle theme" className={iconBtn}>
           {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
         </button>

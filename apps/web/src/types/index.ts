@@ -209,3 +209,47 @@ export interface ChainVerification {
   first_broken_seq: number | null;
   latest_hash?: string;
 }
+
+export interface AppUser {
+  email: string;
+  name: string | null;
+  picture: string | null;
+  role: "admin" | "user";
+}
+
+export interface SavedFixture {
+  fixture_id: string;
+  saved_at: string;
+  league: string;
+  league_crest: string | null;
+  home_team: string;
+  away_team: string;
+  home_crest: string | null;
+  away_crest: string | null;
+  kickoff_utc: string | null;
+  p_home: number;
+  p_draw: number;
+  p_away: number;
+  pick: "1" | "X" | "2";
+  status: "upcoming" | "awaiting_result" | "finished";
+  home_goals: number | null;
+  away_goals: number | null;
+  actual: "1" | "X" | "2" | null;
+  pick_correct: boolean | null;
+}
+
+export interface PredictionReport {
+  generated_at: string;
+  summary: {
+    locked: number; graded: number; pending: number; voided: number; correct: number;
+    accuracy_pct: number; avg_confidence_pct: number; brier: number; baseline_brier: number; log_loss: number;
+  };
+  calibration: { label: string; count: number; avg_predicted_pct: number; actual_pct: number }[];
+  leagues: { league: string; graded: number; correct: number; accuracy_pct: number }[];
+  matches: {
+    id: string; kickoff_utc: string; league: string; home_team: string; away_team: string;
+    p_home: number; p_draw: number; p_away: number; pick: "1" | "X" | "2";
+    status: "pending" | "void" | "graded";
+    home_goals: number | null; away_goals: number | null; actual: "1" | "X" | "2" | null; correct: boolean | null;
+  }[];
+}
