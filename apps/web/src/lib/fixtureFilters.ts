@@ -51,7 +51,11 @@ export function matchesDate(kickoff: string | undefined, f: FixtureFilters, now:
  * Filter state for a fixture list. League counts are computed from the date-filtered
  * fixtures, so the numbers beside each league always match what ticking it would show.
  */
-export function useFixtureFilters<T extends { league: string }>(fixtures: T[], getKickoff: (item: T) => string | undefined) {
+export function useFixtureFilters<T extends { league: string }>(
+  fixtures: T[],
+  getKickoff: (item: T) => string | undefined,
+  getLeagueCrest?: (item: T) => string | null | undefined,
+) {
   const [filters, setFilters] = useState<FixtureFilters>(DEFAULT_FILTERS);
 
   const dateFiltered = useMemo(() => fixtures.filter((m) => matchesDate(getKickoff(m), filters)), [fixtures, filters, getKickoff]);
@@ -61,8 +65,14 @@ export function useFixtureFilters<T extends { league: string }>(fixtures: T[], g
     // Keep every league listed (even at 0) so the list doesn't jump around.
     fixtures.forEach((m) => counts.set(m.league, counts.get(m.league) ?? 0));
     dateFiltered.forEach((m) => counts.set(m.league, (counts.get(m.league) ?? 0) + 1));
-    return Array.from(counts, ([league, count]) => ({ league, count })).sort((a, b) => a.league.localeCompare(b.league));
-  }, [fixtures, dateFiltered]);
+    const crests = new Map<string, string>();
+    if (getLeagueCrest) fixtures.forEach((m) => {
+      const url = getLeagueCrest(m);
+      if (url && !crests.has(m.league)) crests.set(m.league, url);
+    });
+    return Array.from(counts, ([league, count]) => ({ league, count, crest: crests.get(league) }))
+      .sort((a, b) => a.league.localeCompare(b.league));
+  }, [fixtures, dateFiltered, getLeagueCrest]);
 
   const visible = useMemo(
     () => (filters.leagues.length === 0 ? dateFiltered : dateFiltered.filter((m) => filters.leagues.includes(m.league))),

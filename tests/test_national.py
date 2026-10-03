@@ -61,6 +61,19 @@ def test_api_football_parser_maps_names_and_drops_unplaceable_games():
     assert unmatched == ["Atlantis"]
 
 
+def test_api_football_crests_use_our_team_names_and_the_league_logo():
+    payload = {"response": [
+        {**_api_match(1, "2026-10-10T18:45:00+00:00", "Korea Republic", "Atlantis"),
+         "league": {"logo": "https://logos.example/fri.png"}},
+    ]}
+    payload["response"][0]["teams"]["home"]["logo"] = "https://logos.example/kor.png"
+    payload["response"][0]["teams"]["away"]["logo"] = "https://logos.example/atl.png"
+    assert api_football.extract_crests(payload, "FRI", ["South Korea", "France"]) == [
+        {"kind": "team", "key": "South Korea", "url": "https://logos.example/kor.png"},
+        {"kind": "league", "key": "FRI", "url": "https://logos.example/fri.png"},
+    ]
+
+
 def test_api_football_fixtures_survive_a_snapshot_round_trip(tmp_path):
     rows, _ = api_football.parse_fixtures(
         {"response": [_api_match(1, "2026-10-10T18:45:00+00:00", "France", "Italy")]}, "UNL", ["France", "Italy"])

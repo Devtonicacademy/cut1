@@ -131,7 +131,7 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
     if not key:
         return {"skipped": "FOOTBALL_DATA_KEY not set"}
     today = dt.date.today()
-    rows, unmatched, errors = [], {}, []
+    rows, crests, unmatched, errors = [], [], {}, []
     competitions = [(code, div, False) for code, div in fdorg.COMPETITIONS.items()]
     competitions += [(code, comp, True) for code, comp in fdorg.EUROPEAN_COMPETITIONS.items()]
     with _client() as client, db.connect() as conn:
@@ -148,12 +148,16 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
                 continue
             if cross_country:
                 parsed, missing = fdorg.parse_cross_country_matches(response.json(), div, team_divs)
+                crests += fdorg.extract_crests(response.json(), div, team_divs, fdorg.CROSS_COUNTRY_THRESHOLD)
             else:
-                parsed, missing = fdorg.parse_matches(response.json(), div, _recent_team_names(conn, div))
+                names = _recent_team_names(conn, div)
+                parsed, missing = fdorg.parse_matches(response.json(), div, names)
+                crests += fdorg.extract_crests(response.json(), div, names)
             rows += parsed
             if missing:
                 unmatched[code] = missing
         count = db.replace_fixtures(conn, rows, source=fdorg.SOURCE)
+        db.upsert_crests(conn, crests)
         db.set_meta(conn, "last_fdorg_refresh", _now_utc().isoformat())
         db.set_meta(conn, "fdorg_unmatched_teams", json.dumps(unmatched))
     return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}
@@ -177,7 +181,7 @@ def ingest_api_football_fixtures(days_ahead: int = 14) -> Dict:
     if not key:
         return {"skipped": "API_FOOTBALL_KEY not set"}
     today = dt.date.today()
-    rows, unmatched, errors = [], {}, []
+    rows, crests, unmatched, errors = [], [], {}, []
     with _client() as client, db.connect() as conn:
         names = {r["home_team"] for r in db.load_national_matches(conn)} | \
                 {r["away_team"] for r in db.load_national_matches(conn)}
@@ -195,10 +199,12 @@ def ingest_api_football_fixtures(days_ahead: int = 14) -> Dict:
                 errors.append(f"{comp}: {payload['errors']}")
                 continue
             parsed, missing = api_football.parse_fixtures(payload, comp, names)
+            crests += api_football.extract_crests(payload, comp, names)
             rows += parsed
             if missing:
                 unmatched[comp] = missing
         count = db.replace_fixtures(conn, rows, source=api_football.SOURCE)
+        db.upsert_crests(conn, crests)
         db.set_meta(conn, "last_api_football_refresh", _now_utc().isoformat())
         db.set_meta(conn, "api_football_unmatched_teams", json.dumps(unmatched))
     return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}

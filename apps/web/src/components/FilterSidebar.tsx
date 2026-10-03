@@ -4,9 +4,10 @@ import React, { useEffect, useId, useState } from "react";
 import { CalendarDays, ChevronDown, ChevronLeft, Filter, X } from "lucide-react";
 import { m } from "framer-motion";
 import { DatePreset, FixtureFilters } from "@/lib/fixtureFilters";
+import Crest from "@/components/ui/Crest";
 
 interface FilterSidebarProps {
-  leagues: { league: string; count: number }[];
+  leagues: { league: string; count: number; crest?: string | null }[];
   filters: FixtureFilters;
   activeCount: number;
   onToggleLeague: (league: string) => void;
@@ -75,7 +76,7 @@ export default function FilterSidebar({
         </button>
         {leaguesOpen && (
           <ul id={`${uid}-${scope}-leagues`} className="mt-2 space-y-0.5">
-            {leagues.map(({ league, count }) => {
+            {leagues.map(({ league, count, crest }) => {
               const checked = filters.leagues.includes(league);
               return (
                 <li key={league}>
@@ -90,6 +91,7 @@ export default function FilterSidebar({
                       onChange={() => onToggleLeague(league)}
                       className="h-4 w-4 shrink-0 cursor-pointer rounded accent-emerald-500"
                     />
+                    <Crest src={crest} name={league} size={20} />
                     <span className="flex-1 text-slate-700 dark:text-gray-200">{league}</span>
                     <span className="rounded-chip border border-slate-200 px-1.5 font-mono text-[10px] font-semibold text-slate-500 dark:border-glass dark:text-gray-400">
                       {count}

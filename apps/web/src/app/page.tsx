@@ -34,6 +34,7 @@ async function getJson<T>(path: string, init?: RequestInit): Promise<T | null> {
 }
 
 const kickoffOf = (f: Fixture) => f.kickoff_timestamp;
+const leagueCrestOf = (f: Fixture) => f.league_crest;
 
 export default function Home() {
   const [bankroll, setBankroll] = useState<number>(10000);
@@ -184,7 +185,7 @@ export default function Home() {
   const showKelly = selectedBets.length > 0 || fixtures.some((f) => (f.prediction?.value_bets.length ?? 0) > 0);
 
   const { filters, visible, leagueCounts, activeCount, toggleLeague, setDatePreset, setCustomDate, reset } =
-    useFixtureFilters(fixtures, kickoffOf);
+    useFixtureFilters(fixtures, kickoffOf, leagueCrestOf);
 
   // League and date come from the sidebar; confidence is a quick filter on top of that.
   const filteredFixtures = visible.filter((f) => {
