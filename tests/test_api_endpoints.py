@@ -97,3 +97,27 @@ def test_cors_only_allows_the_web_app():
     assert allowed.headers.get("access-control-allow-origin") == "http://localhost:3000"
     other = client.get("/api/v1/health", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in other.headers
+
+def test_fixtures_carry_crests_when_the_feeds_reported_them():
+    from apps.api.app.data import db
+    from apps.api.app.main import fixture_service
+
+    before = client.get("/api/v1/fixtures").json()
+    first = before[0]
+    assert first["league_crest"] is None and first["home_team"]["crest"] is None  # nothing stored yet
+
+    with db.connect() as conn:
+        db.upsert_crests(conn, [
+            {"kind": "team", "key": first["home_team"]["name"], "url": "https://crests.example/home.png"},
+            {"kind": "league", "key": first["div"], "url": "https://crests.example/league.png"},
+        ])
+    try:
+        fixture_service.refresh_fixtures()
+        after = {f["id"]: f for f in client.get("/api/v1/fixtures").json()}[first["id"]]
+        assert after["home_team"]["crest"] == "https://crests.example/home.png"
+        assert after["away_team"]["crest"] is None  # unknown clubs stay None, the site shows initials
+        assert after["league_crest"] == "https://crests.example/league.png"
+    finally:
+        with db.connect() as conn:
+            conn.execute("DELETE FROM crests")
+        fixture_service.refresh_fixtures()

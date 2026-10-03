@@ -6,6 +6,7 @@ import { Fixture, ValueBetItem } from "@/types";
 import GlassCard from "@/components/ui/GlassCard";
 import Chip from "@/components/ui/Chip";
 import OddsText from "@/components/ui/OddsText";
+import Crest from "@/components/ui/Crest";
 import MatchDetailModal from "@/components/MatchDetailModal";
 
 interface MatchCardProps {
@@ -42,7 +43,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected, featured =
       ? [p.statistical_verdict.split(/(?<=[.!?])\s/)[0]]
       : [];
 
-  const teamName = `truncate font-display font-semibold text-slate-900 dark:text-white ${featured ? "text-xl sm:text-2xl" : "text-base"}`;
+  const teamName = `min-w-0 truncate font-display font-semibold text-slate-900 dark:text-white ${featured ? "text-xl sm:text-2xl" : "text-base"}`;
 
   return (
     <>
@@ -55,10 +56,13 @@ export default function MatchCard({ fixture, onSelectBet, isSelected, featured =
             <span className="font-mono text-[11px] text-slate-500 dark:text-gray-400">{formatKickoff(fixture)}</span>
           </div>
 
-          <div className="space-y-0.5">
-            <h3 className={teamName} title={fixture.home_team.name}>{fixture.home_team.name}</h3>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">vs</p>
-            <h3 className={teamName} title={fixture.away_team.name}>{fixture.away_team.name}</h3>
+          <div className="space-y-1.5">
+            {[fixture.home_team, fixture.away_team].map((team, i) => (
+              <div key={i} className="flex items-center gap-2.5">
+                <Crest src={team.crest} name={team.name} size={featured ? 32 : 28} />
+                <h3 className={teamName} title={team.name}>{team.name}</h3>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-1">

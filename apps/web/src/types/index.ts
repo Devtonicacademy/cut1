@@ -9,6 +9,8 @@ export interface Team {
   rolling_xg_conceded: number;
   form: string;
   key_injuries: string[];
+  /** Club crest URL from the fixture feed; absent when the feed did not report one. */
+  crest?: string | null;
 }
 
 export interface BookmakerOdds {
@@ -98,6 +100,8 @@ export interface Fixture {
   home_team: Team;
   away_team: Team;
   league: string;
+  /** Competition emblem URL from the fixture feed, when known. */
+  league_crest?: string | null;
   kickoff: string;
   match_date?: string;
   match_time?: string;

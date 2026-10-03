@@ -161,5 +161,23 @@ def parse_cross_country_matches(
     return rows, unmatched
 
 
+def extract_crests(
+    payload: Mapping, key: str, candidates: Iterable[str], threshold: float = MATCH_THRESHOLD
+) -> List[Dict]:
+    """
+    Crest URLs from a competition's matches payload: one per club we can place (keyed by our team
+    name) plus the competition emblem (keyed by `key`, our competition code). Clubs and the emblem
+    without a URL are skipped.
+    """
+    matches = [m for m in payload.get("matches", []) if m.get("status") in ("SCHEDULED", "TIMED")]
+    fd_teams = {t["id"]: t for m in matches for t in (m["homeTeam"], m["awayTeam"]) if t.get("id")}
+    mapping, _ = match_teams(fd_teams.values(), candidates, threshold)
+    rows = [{"kind": "team", "key": mapping[i], "url": t["crest"]} for i, t in fd_teams.items() if i in mapping and t.get("crest")]
+    emblem = (payload.get("competition") or {}).get("emblem")
+    if emblem:
+        rows.append({"kind": "league", "key": key, "url": emblem})
+    return rows
+
+
 def matches_url(code: str, date_from: dt.date, date_to: dt.date) -> str:
     return f"{API_URL}/competitions/{code}/matches?dateFrom={date_from.isoformat()}&dateTo={date_to.isoformat()}"

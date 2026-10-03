@@ -77,3 +77,32 @@ def test_old_databases_gain_the_source_column(tmp_path):
     old.close()
     with db.connect(path) as conn:
         assert conn.execute("SELECT source FROM fixtures").fetchone()[0] == "football-data.co.uk"
+
+
+def test_extract_crests_maps_clubs_to_our_names_and_adds_the_emblem():
+    payload = {
+        "competition": {"emblem": "https://crests.example/PL.png"},
+        "matches": [
+            {"status": "TIMED", "utcDate": "2026-10-10T14:00:00Z",
+             "homeTeam": {**_team(1, "Manchester City FC", "Man City"), "crest": "https://crests.example/65.png"},
+             "awayTeam": {**_team(5, "Leeds United FC", "Leeds United"), "crest": None}},
+            {"status": "SCHEDULED", "utcDate": "2026-10-11T14:00:00Z",
+             "homeTeam": {**_team(9, "Unknown Town FC", "Unknown"), "crest": "https://crests.example/9.png"},
+             "awayTeam": {**_team(5, "Leeds United FC", "Leeds United"), "crest": None}},
+        ],
+    }
+    assert fdorg.extract_crests(payload, "E0", OUR_NAMES) == [
+        {"kind": "team", "key": "Man City", "url": "https://crests.example/65.png"},  # no crest for Leeds, none for the unplaceable club
+        {"kind": "league", "key": "E0", "url": "https://crests.example/PL.png"},
+    ]
+
+
+def test_crests_round_trip_and_newer_urls_replace_older(tmp_path):
+    with db.connect(tmp_path / "c.db") as conn:
+        assert db.upsert_crests(conn, [
+            {"kind": "team", "key": "Man City", "url": "old"},
+            {"kind": "league", "key": "E0", "url": "https://crests.example/PL.png"},
+            {"kind": "team", "key": "Leeds", "url": None},  # no URL: skipped
+        ]) == 2
+        db.upsert_crests(conn, [{"kind": "team", "key": "Man City", "url": "new"}])
+        assert db.load_crests(conn) == {"team": {"Man City": "new"}, "league": {"E0": "https://crests.example/PL.png"}}

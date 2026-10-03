@@ -35,10 +35,7 @@ def fixtures_url(league_id: int, season: int, date_from: dt.date, date_to: dt.da
             f"&from={date_from.isoformat()}&to={date_to.isoformat()}")
 
 
-def parse_fixtures(payload: Mapping, comp: str, team_names: Iterable[str]) -> Tuple[List[Dict], List[str]]:
-    """Not-yet-played matches -> fixture rows (no odds). Matches with a team we cannot place are dropped."""
-    names = sorted(set(team_names))
-    matches = [m for m in payload.get("response", []) if m["fixture"]["status"]["short"] in SCHEDULED]
+def _map_teams(matches, names: List[str]):
     api_teams = {t["id"]: {"id": t["id"], "name": t["name"]}
                  for m in matches for t in (m["teams"]["home"], m["teams"]["away"]) if t.get("id")}
     mapping: Dict[int, str] = {}
@@ -49,6 +46,32 @@ def parse_fixtures(payload: Mapping, comp: str, team_names: Iterable[str]) -> Tu
     rest = {i: t for i, t in api_teams.items() if i not in mapping}
     fuzzy, _ = match_teams(rest.values(), [n for n in names if n not in mapping.values()], MATCH_THRESHOLD)
     mapping.update(fuzzy)
+    return api_teams, mapping
+
+
+def extract_crests(payload: Mapping, comp: str, team_names: Iterable[str]) -> List[Dict]:
+    """Team logos (keyed by our team name) and the competition logo (keyed by `comp`) from a fixtures payload."""
+    names = sorted(set(team_names))
+    matches = [m for m in payload.get("response", []) if m["fixture"]["status"]["short"] in SCHEDULED]
+    _, mapping = _map_teams(matches, names)
+    rows, seen = [], set()
+    for m in matches:
+        for side in ("home", "away"):
+            t = m["teams"][side]
+            if t.get("id") in mapping and t.get("logo") and t["id"] not in seen:
+                seen.add(t["id"])
+                rows.append({"kind": "team", "key": mapping[t["id"]], "url": t["logo"]})
+    logo = next((m.get("league", {}).get("logo") for m in matches if m.get("league", {}).get("logo")), None)
+    if logo:
+        rows.append({"kind": "league", "key": comp, "url": logo})
+    return rows
+
+
+def parse_fixtures(payload: Mapping, comp: str, team_names: Iterable[str]) -> Tuple[List[Dict], List[str]]:
+    """Not-yet-played matches -> fixture rows (no odds). Matches with a team we cannot place are dropped."""
+    names = sorted(set(team_names))
+    matches = [m for m in payload.get("response", []) if m["fixture"]["status"]["short"] in SCHEDULED]
+    api_teams, mapping = _map_teams(matches, names)
     unmatched = sorted(t["name"] for i, t in api_teams.items() if i not in mapping)
 
     rows = []

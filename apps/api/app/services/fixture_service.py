@@ -81,6 +81,7 @@ class _Context:
     feature_state: Optional[FeatureState]
     national_matches: List[Dict] = field(default_factory=list)  # all international results, oldest first
     national_ratings: Optional[national.NationalRatings] = None
+    crests: Dict[str, Dict[str, str]] = field(default_factory=dict)  # {"team": {name: url}, "league": {code: url}}
 
 
 class FixtureService:
@@ -130,6 +131,9 @@ class FixtureService:
             with db.connect() as conn:
                 national_matches = [dict(r) for r in db.load_national_matches(conn)]
 
+        with db.connect() as conn:
+            crests = db.load_crests(conn)
+
         league_models = {}
         divs = {r["div"] for r in fixture_rows if r["div"] in LEAGUES}
         for r in fixture_rows:  # cross-country fixtures need each club's own league model
@@ -147,6 +151,7 @@ class FixtureService:
             feature_state=replay_history(all_history) if all_history is not None else None,
             national_matches=national_matches,
             national_ratings=national.replay(national_matches) if national_matches else None,
+            crests=crests,
         )
         self._enriched_cache.clear()
         self._cache_built_at = time.monotonic()
@@ -156,10 +161,19 @@ class FixtureService:
         """Runs the prediction and value-detection pipeline for every upcoming fixture."""
         ctx = self._context()
         if bankroll_ngn not in self._enriched_cache:
-            self._enriched_cache[bankroll_ngn] = [
-                await self._build_fixture(row, ctx, bankroll_ngn) for row in ctx.fixture_rows
-            ]
+            fixtures = [await self._build_fixture(row, ctx, bankroll_ngn) for row in ctx.fixture_rows]
+            for f in fixtures:
+                self._apply_crests(f, ctx.crests)
+            self._enriched_cache[bankroll_ngn] = fixtures
         return self._enriched_cache[bankroll_ngn]
+
+    @staticmethod
+    def _apply_crests(fixture: Fixture, crests: Mapping[str, Mapping[str, str]]) -> None:
+        """Attaches crest/emblem URLs the feeds reported; fixtures with none keep None (the site shows initials)."""
+        teams, leagues = crests.get("team", {}), crests.get("league", {})
+        fixture.home_team.crest = teams.get(fixture.home_team.name)
+        fixture.away_team.crest = teams.get(fixture.away_team.name)
+        fixture.league_crest = leagues.get(fixture.div or "")
 
     async def get_fixture_by_id(self, fixture_id: str, bankroll_ngn: float = 10000.0) -> Optional[Fixture]:
         for f in await self.get_all_fixtures_with_predictions(bankroll_ngn):

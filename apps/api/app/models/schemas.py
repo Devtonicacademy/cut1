@@ -39,6 +39,7 @@ class Team(BaseModel):
     rolling_xg_conceded: float = 1.10
     form: str = "WWDWL"
     key_injuries: List[str] = []
+    crest: Optional[str] = None  # club crest URL from the fixture feed, when known
 
 class BookmakerOdds(BaseModel):
     bookmaker: str # "SportyBet", "Bet9ja", "BetKing"
@@ -124,6 +125,7 @@ class Fixture(BaseModel):
     home_team: Team
     away_team: Team
     league: str
+    league_crest: Optional[str] = None  # competition emblem URL from the fixture feed, when known
     kickoff: str
     match_date: Optional[str] = None
     match_time: Optional[str] = None

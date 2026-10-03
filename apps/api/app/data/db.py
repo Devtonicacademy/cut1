@@ -82,6 +82,16 @@ CREATE TABLE IF NOT EXISTS national_matches (
 -- Append-only prediction ledger. Each row's hash covers its prediction and the previous
 -- row's hash, so editing or deleting a past prediction breaks the chain. Only the
 -- result columns (fthg ... graded_at) are filled in after the match.
+-- Crest/emblem URLs reported by the fixture feeds, kept apart from `fixtures` because the primary
+-- source (which has no crests) wins duplicate matches. kind is 'team' (key = our team name) or
+-- 'league' (key = competition code, e.g. "E0" or "CL").
+CREATE TABLE IF NOT EXISTS crests (
+    kind TEXT NOT NULL,
+    key TEXT NOT NULL,
+    url TEXT NOT NULL,
+    PRIMARY KEY (kind, key)
+);
+
 CREATE TABLE IF NOT EXISTS predictions (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     fixture_id TEXT NOT NULL UNIQUE,
@@ -204,6 +214,21 @@ def replace_fixtures(conn: sqlite3.Connection, rows: Iterable[Dict], source: str
             [row + (row[0], row[3], row[4]) for row in data],
         )
     return conn.execute("SELECT COUNT(*) FROM fixtures WHERE source = ?", (source,)).fetchone()[0]
+
+
+def upsert_crests(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
+    """Stores crest URLs ({"kind", "key", "url"}); a newer URL for the same team or league replaces the old one."""
+    data = [(r["kind"], r["key"], r["url"]) for r in rows if r.get("url")]
+    conn.executemany("INSERT OR REPLACE INTO crests (kind, key, url) VALUES (?, ?, ?)", data)
+    return len(data)
+
+
+def load_crests(conn: sqlite3.Connection) -> Dict[str, Dict[str, str]]:
+    """{"team": {name: url}, "league": {code: url}}"""
+    out: Dict[str, Dict[str, str]] = {"team": {}, "league": {}}
+    for r in conn.execute("SELECT kind, key, url FROM crests"):
+        out.setdefault(r["kind"], {})[r["key"]] = r["url"]
+    return out
 
 
 def load_matches_since(conn: sqlite3.Connection, since_date: str) -> List[sqlite3.Row]:
