@@ -2,6 +2,8 @@
 
 import Chip from "@/components/ui/Chip";
 import FilterSidebar from "@/components/FilterSidebar";
+import LeagueStories from "@/components/LeagueStories";
+import MobileQuickSettings from "@/components/MobileQuickSettings";
 import { useFixtureFilters } from "@/lib/fixtureFilters";
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
@@ -193,6 +195,14 @@ export default function Home() {
         />
 
         <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6">
+          <MobileQuickSettings
+            bankroll={bankroll}
+            onBankrollChange={setBankroll}
+            dataSaver={dataSaver}
+            onToggleDataSaver={toggleDataSaver}
+            isDarkMode={isDarkMode}
+            onToggleTheme={toggleTheme}
+          />
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Hero */}
@@ -267,6 +277,8 @@ export default function Home() {
                 onReset={reset}
               />
               <div className="w-full min-w-0 flex-1 space-y-4 sm:space-y-6">
+              <LeagueStories leagues={leagueCounts} selected={filters.leagues} onToggle={toggleLeague} />
+
               {/* Filters */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-gray-800/60 pt-2 flex-wrap gap-2">
@@ -313,7 +325,7 @@ export default function Home() {
                   </button>
                 </p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+                <div className="-mx-3.5 flex max-w-xl flex-col gap-3 sm:mx-auto sm:gap-4">
                   {filteredFixtures.map((fixture) => (
                     <MatchCard
                       key={fixture.id}
