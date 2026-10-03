@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ChevronDown, Lightbulb } from "lucide-react";
+import { Bookmark, ChevronDown, Lightbulb } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 import { Fixture, ValueBetItem } from "@/types";
 import GlassCard from "@/components/ui/GlassCard";
 import Chip from "@/components/ui/Chip";
@@ -32,6 +33,8 @@ function formatKickoff(f: Fixture): string {
 export default function MatchCard({ fixture, onSelectBet, isSelected, featured = false }: MatchCardProps) {
   const [whyOpen, setWhyOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
+  const { savedIds, toggleSave } = useAuth();
+  const saved = savedIds.has(fixture.id);
   const p = fixture.prediction;
   if (!p) return null;
 
@@ -53,7 +56,20 @@ export default function MatchCard({ fixture, onSelectBet, isSelected, featured =
             <Chip tone="success" className="max-w-[55%] truncate uppercase tracking-wider">
               {fixture.league}
             </Chip>
-            <span className="font-mono text-[11px] text-slate-500 dark:text-gray-400">{formatKickoff(fixture)}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-[11px] text-slate-500 dark:text-gray-400">{formatKickoff(fixture)}</span>
+              <button
+                onClick={() => toggleSave(fixture.id)}
+                aria-pressed={saved}
+                aria-label={saved ? "Remove from my dashboard" : "Save to my dashboard"}
+                title={saved ? "Saved: tap to remove" : "Save to my dashboard"}
+                className={`rounded-lg p-1.5 transition-colors ${
+                  saved ? "text-emerald-500" : "text-slate-400 hover:bg-slate-100 hover:text-emerald-500 dark:hover:bg-slate-800"
+                }`}
+              >
+                <Bookmark className={`h-4 w-4 ${saved ? "fill-current" : ""}`} />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-1.5">

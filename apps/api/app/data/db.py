@@ -92,6 +92,35 @@ CREATE TABLE IF NOT EXISTS crests (
     PRIMARY KEY (kind, key)
 );
 
+-- Accounts. The role is not stored: it is derived from the email on every request (see auth.py).
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL UNIQUE,
+    name TEXT,
+    picture TEXT,
+    created_at TEXT NOT NULL,
+    last_login_at TEXT NOT NULL
+);
+
+-- Only a hash of the session token is stored, so a copy of the database cannot be used to sign in.
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
+
+-- Fixtures a user saved. `snapshot` keeps what the card showed, so the entry survives the fixture
+-- dropping off the upcoming list after kickoff.
+CREATE TABLE IF NOT EXISTS saved_fixtures (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fixture_id TEXT NOT NULL,
+    saved_at TEXT NOT NULL,
+    snapshot TEXT NOT NULL,
+    PRIMARY KEY (user_id, fixture_id)
+);
+
 CREATE TABLE IF NOT EXISTS predictions (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     fixture_id TEXT NOT NULL UNIQUE,

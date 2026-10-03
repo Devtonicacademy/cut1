@@ -16,6 +16,9 @@ import SmartAccaModal from "@/components/SmartAccaModal";
 import WhatsAppSlipGenerator from "@/components/WhatsAppSlipGenerator";
 import TrackRecordView from "@/components/TrackRecordView";
 import AccuracyView from "@/components/AccuracyView";
+import DashboardView from "@/components/DashboardView";
+import AdminView from "@/components/AdminView";
+import { useAuth } from "@/lib/auth";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import AgeGate from "@/components/AgeGate";
 import { API_BASE_URL } from "@/lib/config";
@@ -49,6 +52,14 @@ export default function Home() {
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const { user, justSignedIn, acknowledgeSignIn } = useAuth();
+
+  // Right after the admin signs in, land on the admin reports. Restoring an old session does not do this.
+  useEffect(() => {
+    if (!justSignedIn || !user) return;
+    if (user.role === "admin") setActiveTab("admin");
+    acknowledgeSignIn();
+  }, [justSignedIn, user, acknowledgeSignIn]);
 
   const [bankerData, setBankerData] = useState<AccumulatorResponse | null>(null);
   const [showBankerModal, setShowBankerModal] = useState<boolean>(false);
@@ -289,6 +300,7 @@ export default function Home() {
             onToggleDataSaver={toggleDataSaver}
             isDarkMode={isDarkMode}
             onToggleTheme={toggleTheme}
+            onNavigate={setActiveTab}
           />
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
@@ -411,6 +423,10 @@ export default function Home() {
               <TrackRecordView stats={trackStats} verification={verification} />
             </Reveal>
           )}
+
+          {activeTab === "dashboard" && <DashboardView onBrowse={() => setActiveTab("fixtures")} />}
+
+          {activeTab === "admin" && <AdminView />}
 
           {activeTab === "accuracy" && (
             <Reveal>

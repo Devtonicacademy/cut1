@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth";
+import SignInModal from "@/components/auth/SignInModal";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-space-grotesk", display: "swap" });
@@ -30,7 +32,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="antialiased min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-white transition-colors duration-150">
-        {children}
+        <AuthProvider>
+          {children}
+          <SignInModal />
+        </AuthProvider>
       </body>
     </html>
   );
