@@ -1,433 +1,122 @@
 "use client";
 
 import React, { useState } from "react";
+import { ChevronDown, Lightbulb } from "lucide-react";
 import { Fixture, ValueBetItem } from "@/types";
 import GlassCard from "@/components/ui/GlassCard";
 import Chip from "@/components/ui/Chip";
 import OddsText from "@/components/ui/OddsText";
-import { 
-  ChevronDown, ChevronUp, Sparkles, AlertTriangle, TrendingUp, 
-  CheckCircle2, Trophy, Shield, Calendar, Clock, BarChart2, Lightbulb, ExternalLink, Check 
-} from "lucide-react";
+import MatchDetailModal from "@/components/MatchDetailModal";
 
 interface MatchCardProps {
   fixture: Fixture;
   onSelectBet: (bet: ValueBetItem, fixture: Fixture) => void;
   isSelected?: boolean;
+  /** Larger treatment for the lead card of the bento grid. */
+  featured?: boolean;
 }
 
-export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCardProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [showH2H, setShowH2H] = useState(false);
-  const [copiedBook, setCopiedBook] = useState<string | null>(null);
-  const p = fixture.prediction;
+function formatKickoff(f: Fixture): string {
+  if (f.kickoff_timestamp) {
+    const d = new Date(f.kickoff_timestamp);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    }
+  }
+  if (f.match_date && f.match_time) return `${f.match_date} · ${f.match_time}`;
+  return f.kickoff;
+}
 
+/** Bento tile: teams, kick-off and win probabilities. Everything else lives behind "Why" and the detail modal. */
+export default function MatchCard({ fixture, onSelectBet, isSelected, featured = false }: MatchCardProps) {
+  const [whyOpen, setWhyOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const p = fixture.prediction;
   if (!p) return null;
 
-  const topValueBet = p.value_bets.length > 0 ? p.value_bets[0] : null;
+  const whyId = `why-${fixture.id}`;
+  const reasons =
+    p.key_factors && p.key_factors.length > 0
+      ? p.key_factors
+      : p.statistical_verdict
+      ? [p.statistical_verdict.split(/(?<=[.!?])\s/)[0]]
+      : [];
 
-  // Format kick-off date & time
-  const displayDate = fixture.match_date || (fixture.kickoff.includes(",") ? fixture.kickoff.split(",")[0].trim() : "Upcoming");
-  const displayTime = fixture.match_time || (fixture.kickoff.includes(",") ? fixture.kickoff.split(",")[1].trim() + " WAT" : fixture.kickoff);
-
-  const h2h = fixture.h2h;
-  const hasMarketOdds = fixture.sportybet_odds.bookmaker === "Market Average";
-
-  // Copies "Home vs Away" so it can be pasted into the bookmaker's search, then opens the site
-  const findOnBookmaker = (name: string, url: string) => {
-    try {
-      navigator.clipboard.writeText(`${fixture.home_team.name} vs ${fixture.away_team.name}`);
-    } catch {
-      // clipboard unavailable: the site still opens
-    }
-    setCopiedBook(name);
-    setTimeout(() => setCopiedBook(null), 2500);
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
+  const teamName = `truncate font-display font-semibold text-slate-900 dark:text-white ${featured ? "text-xl sm:text-2xl" : "text-base"}`;
 
   return (
-    <GlassCard active={isSelected} className="max-sm:rounded-none max-sm:border-x-0">
-      {/* Top Banner: League & Kickoff Date/Time */}
-      <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-gray-900/70 border-b border-slate-200/80 dark:border-gray-800 flex flex-wrap justify-between items-center gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <Chip tone="success" className="uppercase tracking-wider">{fixture.league}</Chip>
-          <span className="text-[11px] text-slate-500 dark:text-gray-400 hidden xs:inline">
-            • {fixture.venue.split(",")[0]}
-          </span>
-        </div>
+    <>
+      <GlassCard active={isSelected} className={`flex flex-col ${featured ? "lg:col-span-2" : ""}`}>
+        <div className={`flex flex-1 flex-col gap-3 ${featured ? "p-5" : "p-4"}`}>
+          <div className="flex items-center justify-between gap-2">
+            <Chip tone="success" className="max-w-[55%] truncate uppercase tracking-wider">
+              {fixture.league}
+            </Chip>
+            <span className="font-mono text-[11px] text-slate-500 dark:text-gray-400">{formatKickoff(fixture)}</span>
+          </div>
 
-        {/* Date and Time Badge */}
-        <div className="flex items-center gap-2 text-[11px] font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-gray-700 shadow-2xs">
-          <Chip tone="success" pill>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            UPCOMING
-          </Chip>
-          <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-gray-200">
-            <Calendar className="w-3.5 h-3.5 text-emerald-500" />
-            <span>{displayDate}</span>
-          </span>
-          <span className="text-slate-300 dark:text-gray-600">|</span>
-          <span className="flex items-center gap-1 text-slate-500 dark:text-gray-400">
-            <Clock className="w-3 h-3 text-slate-400" />
-            <span>{displayTime}</span>
-          </span>
-        </div>
-      </div>
+          <div className="space-y-0.5">
+            <h3 className={teamName} title={fixture.home_team.name}>{fixture.home_team.name}</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">vs</p>
+            <h3 className={teamName} title={fixture.away_team.name}>{fixture.away_team.name}</h3>
+          </div>
 
-      {/* Main Matchup Body */}
-      <div className="p-3.5 sm:p-4">
-        {/* Statistically Projected Winner Highlight */}
-        {p.likely_winner_team && (
-          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-emerald-50 via-slate-50 to-slate-100 dark:from-emerald-950/50 dark:via-gray-900 dark:to-[#111827] border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                <Trophy className="w-3.5 h-3.5" />
-              </span>
-              <div>
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider">Likely Winner:</span>
-                  <span className="font-extrabold text-slate-900 dark:text-white text-xs">{p.likely_winner_team}</span>
-                  <Chip tone={p.likely_winner_confidence?.includes("Banker") ? "success" : p.likely_winner_confidence?.includes("Strong") ? "caution" : "info"}>
-                    {((p.likely_winner_prob || 0) * 100).toFixed(0)}% Win Prob • {p.likely_winner_confidence}
-                  </Chip>
-                </div>
-                {p.recommended_safe_pick && (
-                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
-                    <Shield className="w-3 h-3 inline text-emerald-500" />
-                    <span>Safer option: <b>{p.recommended_safe_pick}</b> (fair odds {p.recommended_safe_odds?.toFixed(2)})</span>
-                  </p>
-                )}
-              </div>
+          <div className="space-y-1">
+            <div className="flex justify-between font-mono text-[11px] font-semibold">
+              <span className="text-emerald-600 dark:text-emerald-400">1 <OddsText value={p.prob_home_win * 100} digits={0} suffix="%" /></span>
+              <span className="text-slate-500 dark:text-gray-400">X <OddsText value={p.prob_draw * 100} digits={0} suffix="%" /></span>
+              <span className="text-blue-600 dark:text-blue-400">2 <OddsText value={p.prob_away_win * 100} digits={0} suffix="%" /></span>
+            </div>
+            <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-gray-800">
+              <div style={{ width: `${p.prob_home_win * 100}%` }} className="bg-emerald-500" />
+              <div style={{ width: `${p.prob_draw * 100}%` }} className="bg-slate-400 dark:bg-gray-600" />
+              <div style={{ width: `${p.prob_away_win * 100}%` }} className="bg-blue-500" />
             </div>
           </div>
-        )}
 
-        {/* Teams and Form */}
-        <div className="grid grid-cols-5 items-center gap-2 mb-3">
-          {/* Home Team */}
-          <div className="col-span-2 text-right">
-            <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={fixture.home_team.name}>
-              {fixture.home_team.name}
-            </h3>
-            <div className="flex justify-end gap-1 mt-1">
-              {fixture.home_team.form.split("").map((f, i) => (
-                <span
-                  key={i}
-                  className={`text-[9px] font-bold px-1 rounded ${
-                    f === "W" 
-                      ? "bg-emerald-600 text-white" 
-                      : f === "D" 
-                      ? "bg-slate-400 dark:bg-gray-600 text-white" 
-                      : "bg-rose-600 text-white"
-                  }`}
-                >
-                  {f}
-                </span>
-              ))}
-            </div>
-            {fixture.home_team.rolling_xg_created > 0 && <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5" title="Expected goals per game, estimated from shots on target (last 6 games)">Shots xG: {fixture.home_team.rolling_xg_created.toFixed(2)}</p>}
-          </div>
-
-          {/* VS Divider & Score Expectancy */}
-          <div className="col-span-1 text-center">
-            <span className="text-[11px] font-black text-slate-500 dark:text-gray-400 bg-slate-100 dark:bg-gray-900 px-2 py-0.5 rounded-full border border-slate-200 dark:border-gray-800">
-              VS
-            </span>
-            <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-1 font-mono">
-              xG: {p.expected_goals_home.toFixed(1)} - {p.expected_goals_away.toFixed(1)}
-            </p>
-          </div>
-
-          {/* Away Team */}
-          <div className="col-span-2 text-left">
-            <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white truncate" title={fixture.away_team.name}>
-              {fixture.away_team.name}
-            </h3>
-            <div className="flex justify-start gap-1 mt-1">
-              {fixture.away_team.form.split("").map((f, i) => (
-                <span
-                  key={i}
-                  className={`text-[9px] font-bold px-1 rounded ${
-                    f === "W" 
-                      ? "bg-emerald-600 text-white" 
-                      : f === "D" 
-                      ? "bg-slate-400 dark:bg-gray-600 text-white" 
-                      : "bg-rose-600 text-white"
-                  }`}
-                >
-                  {f}
-                </span>
-              ))}
-            </div>
-            {fixture.away_team.rolling_xg_created > 0 && <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-0.5" title="Expected goals per game, estimated from shots on target (last 6 games)">Shots xG: {fixture.away_team.rolling_xg_created.toFixed(2)}</p>}
-          </div>
-        </div>
-
-        {/* AI Calibrated Probability Bar */}
-        <div className="space-y-1 mb-3">
-          <div className="flex justify-between text-[11px] font-semibold">
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">1: <OddsText value={p.prob_home_win * 100} digits={0} suffix="%" /></span>
-            <span className="text-slate-500 dark:text-gray-400">X: <OddsText value={p.prob_draw * 100} digits={0} suffix="%" /></span>
-            <span className="text-blue-600 dark:text-blue-400 font-bold">2: <OddsText value={p.prob_away_win * 100} digits={0} suffix="%" /></span>
-          </div>
-          <div className="h-2 w-full bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden flex border border-slate-200 dark:border-transparent">
-            <div style={{ width: `${p.prob_home_win * 100}%` }} className="bg-emerald-500" />
-            <div style={{ width: `${p.prob_draw * 100}%` }} className="bg-slate-400 dark:bg-gray-600" />
-            <div style={{ width: `${p.prob_away_win * 100}%` }} className="bg-blue-500" />
-          </div>
-        </div>
-
-        {/* Why the model predicts this */}
-        {p.key_factors && p.key_factors.length > 0 && (
-          <div className="mb-3 p-2.5 rounded-lg bg-slate-50 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 text-[11px]">
-            <div className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-gray-200 mb-1">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>Why</span>
-            </div>
-            <ul className="space-y-0.5 text-slate-600 dark:text-gray-300 list-disc pl-4">
-              {p.key_factors.map((factor, i) => <li key={i}>{factor}</li>)}
-            </ul>
-            {p.prediction_source && (
-              <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-1.5">{p.prediction_source}</p>
-            )}
-          </div>
-        )}
-
-        {/* Best +EV Value Play Callout */}
-        {topValueBet && (
-          <div className="bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 dark:border-emerald-500/40 rounded-lg p-2.5 mb-3 flex flex-wrap justify-between items-center gap-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-amber-400 dark:bg-gold-500 text-slate-900 dark:text-black text-[10px] font-black px-1.5 py-0.5 rounded uppercase">
-                <OddsText value={topValueBet.expected_value_pct} digits={1} prefix="+" suffix="% EV" />
-              </span>
-              <div>
-                <span className="font-extrabold text-xs text-slate-900 dark:text-white">{topValueBet.market_name}</span>
-                <span className="text-[11px] text-slate-600 dark:text-gray-400 ml-1.5">
-                  best on <b className="text-emerald-700 dark:text-emerald-300">{topValueBet.bookmaker}</b> (<OddsText value={topValueBet.market_odds} />)
-                </span>
-              </div>
-            </div>
-
+          {/* "Why": collapsed by default */}
+          <div className="mt-auto border-t border-slate-200 pt-2 dark:border-white/[0.08]">
             <button
-              onClick={() => onSelectBet(topValueBet, fixture)}
-              className={`text-xs font-bold px-3 py-1 rounded-md transition-all flex items-center gap-1 ${
-                isSelected
-                  ? "bg-emerald-600 text-white shadow"
-                  : "bg-emerald-700/80 hover:bg-emerald-600 text-white"
-              }`}
+              onClick={() => setWhyOpen((o) => !o)}
+              aria-expanded={whyOpen}
+              aria-controls={whyId}
+              className="flex w-full items-center justify-between text-xs font-bold text-slate-700 dark:text-gray-200"
             >
-              {isSelected ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Selected</span>
-                </>
-              ) : (
-                <>
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>Stake ₦{topValueBet.recommended_stake_ngn.toLocaleString()}</span>
-                </>
-              )}
+              <span className="flex items-center gap-1.5">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-500" />
+                Why
+              </span>
+              <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform dark:text-gray-400 ${whyOpen ? "rotate-180" : ""}`} />
             </button>
-          </div>
-        )}
-
-        {/* Market odds */}
-        <div className="text-xs bg-slate-50 dark:bg-gray-900/40 p-2 rounded-lg border border-slate-200/80 dark:border-gray-800/60 mb-2.5 space-y-1">
-          {hasMarketOdds ? (
-            [fixture.sportybet_odds, fixture.bet9ja_odds].map((book) => (
-              <div key={book.bookmaker} className="flex justify-between items-center">
-                <span className="text-slate-500 dark:text-gray-400 font-medium">{book.bookmaker}:</span>
-                <span className="font-mono text-slate-900 dark:text-white">
-                  1: <b className="text-emerald-600 dark:text-emerald-400"><OddsText value={book.home_win} /></b> | X: <b><OddsText value={book.draw} /></b> | 2: <b><OddsText value={book.away_win} /></b>
-                </span>
+            {whyOpen && (
+              <div id={whyId} className="mt-2 space-y-2 text-[11px] text-slate-600 dark:text-gray-300">
+                {reasons.length > 0 ? (
+                  <ul className="list-disc space-y-0.5 pl-4">
+                    {reasons.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                ) : (
+                  <p>Open the full analysis for the model&apos;s reasoning.</p>
+                )}
+                <button
+                  onClick={() => setDetailOpen(true)}
+                  className="rounded-lg border border-emerald-500/40 bg-emerald-500/[0.12] px-3 py-1 text-[11px] font-bold text-emerald-700 transition-colors hover:bg-emerald-500/20 dark:text-emerald-400"
+                >
+                  See more
+                </button>
               </div>
-            ))
-          ) : (
-            <p className="text-slate-500 dark:text-gray-400">No bookmaker odds published yet for this match.</p>
-          )}
-          <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200 dark:border-gray-800/60">
-            <span className="text-[10px] text-slate-500 dark:text-gray-400 mr-auto">
-              {copiedBook ? `Match name copied: paste it into ${copiedBook} search` : "Check live odds:"}
-            </span>
-            {[
-              { name: "SportyBet", url: "https://www.sportybet.com/ng/" },
-              { name: "Bet9ja", url: "https://sports.bet9ja.com/" },
-            ].map((b) => (
-              <button
-                key={b.name}
-                onClick={() => findOnBookmaker(b.name, b.url)}
-                className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-300 dark:border-gray-700 text-slate-700 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800"
-              >
-                {copiedBook === b.name ? <Check className="w-3 h-3" /> : <ExternalLink className="w-3 h-3" />}
-                <span>{b.name}</span>
-              </button>
-            ))}
+            )}
           </div>
         </div>
-        {/* Action Buttons: Head-to-Head & AI Breakdown */}
-        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-gray-800">
-          <button
-            onClick={() => setShowH2H(!showH2H)}
-            className={`py-1.5 px-2 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors border ${
-              showH2H 
-                ? "bg-blue-50 dark:bg-blue-950/40 border-blue-400 text-blue-600 dark:text-blue-300"
-                : "bg-slate-100 hover:bg-slate-200 dark:bg-gray-800/80 dark:hover:bg-gray-700 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300"
-            }`}
-          >
-            <BarChart2 className="w-3.5 h-3.5" />
-            <span>{showH2H ? "Hide H2H" : `Head-to-head (${h2h?.total_meetings ?? 0})`}</span>
-          </button>
+      </GlassCard>
 
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className={`py-1.5 px-2 rounded-md text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors border ${
-              expanded
-                ? "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 text-emerald-700 dark:text-emerald-300"
-                : "bg-slate-100 hover:bg-slate-200 dark:bg-gray-800/80 dark:hover:bg-gray-700 border-slate-200 dark:border-gray-700 text-slate-700 dark:text-gray-300"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>{expanded ? "Hide analysis" : "Analysis"}</span>
-            {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-          </button>
-        </div>
-
-        {/* Head-to-Head Statistics Drawer */}
-        {showH2H && h2h && (
-          <div className="mt-3 p-3 rounded-lg bg-slate-50 dark:bg-gray-900/80 border border-blue-200 dark:border-blue-900/50 space-y-2.5 text-xs animate-in fade-in duration-150">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-gray-800 pb-2">
-              <span className="font-extrabold text-slate-900 dark:text-white flex items-center gap-1.5 text-xs">
-                <BarChart2 className="w-3.5 h-3.5 text-blue-500" />
-                <span>Head-to-Head Record</span>
-              </span>
-              <span className="text-[10px] bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded font-bold">
-                {h2h.total_meetings} Total Matches
-              </span>
-            </div>
-
-            {/* Wins Breakdown Bar */}
-            <div>
-              <div className="flex justify-between text-[11px] font-bold mb-1">
-                <span className="text-emerald-600 dark:text-emerald-400">{fixture.home_team.name}: {h2h.home_team_wins}W</span>
-                <span className="text-slate-500 dark:text-gray-400">Draws: {h2h.draws}</span>
-                <span className="text-blue-600 dark:text-blue-400">{fixture.away_team.name}: {h2h.away_team_wins}W</span>
-              </div>
-              <div className="h-2 w-full bg-slate-200 dark:bg-gray-800 rounded-full overflow-hidden flex">
-                <div style={{ width: `${(h2h.home_team_wins / (h2h.total_meetings || 1)) * 100}%` }} className="bg-emerald-500" title={`${fixture.home_team.name} wins`} />
-                <div style={{ width: `${(h2h.draws / (h2h.total_meetings || 1)) * 100}%` }} className="bg-slate-400 dark:bg-gray-600" title="Draws" />
-                <div style={{ width: `${(h2h.away_team_wins / (h2h.total_meetings || 1)) * 100}%` }} className="bg-blue-500" title={`${fixture.away_team.name} wins`} />
-              </div>
-            </div>
-
-            {/* Past Meetings List */}
-            {h2h.last_matches && h2h.last_matches.length > 0 && (
-              <div className="space-y-1.5 pt-1">
-                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-gray-400 tracking-wider">
-                  Previous Encounters
-                </p>
-                <div className="space-y-1">
-                  {h2h.last_matches.map((m, idx) => (
-                    <div 
-                      key={idx}
-                      className="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800/60 border border-slate-200 dark:border-gray-700/60 text-[11px]"
-                    >
-                      <div className="text-slate-600 dark:text-gray-400 truncate max-w-[130px] sm:max-w-none">
-                        <span className="font-semibold text-slate-800 dark:text-gray-200">{m.date}</span>
-                        <span className="text-[10px] text-slate-500 dark:text-gray-400 ml-1 hidden xs:inline">({m.competition})</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-slate-900 dark:text-white font-mono">
-                          {m.home_team} {m.home_score} - {m.away_score} {m.away_team}
-                        </span>
-                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                          m.winner === "home" 
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                            : m.winner === "draw"
-                            ? "bg-slate-200 text-slate-700 dark:bg-gray-700 dark:text-gray-300"
-                            : "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300"
-                        }`}>
-                          {m.winner === "draw" ? "D" : `${m.winner === "home" ? m.home_team.slice(0,3) : m.away_team.slice(0,3)} Win`}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Narrative summary */}
-            {h2h.summary && (
-              <p className="text-[11px] text-slate-600 dark:text-gray-300 italic bg-white/60 dark:bg-gray-800/40 p-2 rounded border border-slate-200/60 dark:border-gray-800">
-                &ldquo;{h2h.summary}&rdquo;
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Expanded Drawer: Gemini Analysis, Injuries & Alternative Value Plays */}
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-gray-800/80 space-y-2.5 text-xs text-slate-700 dark:text-gray-300 animate-in fade-in duration-150">
-            {/* Statistical Model Verdict */}
-            {p.statistical_verdict && (
-              <div className="bg-emerald-50/80 dark:bg-[#1E293B] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
-                <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold mb-1">
-                  <Trophy className="w-3.5 h-3.5" />
-                  <span>Model verdict</span>
-                </div>
-                <p className="text-slate-800 dark:text-gray-200 leading-relaxed text-[11px]">
-                  {p.statistical_verdict}
-                </p>
-              </div>
-            )}
-
-            {/* Gemini Tactical Rationale */}
-            <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
-              <div className="flex items-center gap-1.5 text-amber-600 dark:text-gold-400 font-bold mb-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Match analysis</span>
-              </div>
-              <p className="text-slate-800 dark:text-gray-200 leading-relaxed text-[11px] mb-2">
-                {p.gemini_tactical_summary}
-              </p>
-              <div className="flex items-start gap-1.5 text-amber-800 dark:text-amber-300/90 text-[10px] bg-amber-50 dark:bg-amber-950/40 p-2 rounded border border-amber-200 dark:border-amber-900/40">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-600" />
-                <span>{p.gemini_lineup_risk}</span>
-              </div>
-            </div>
-
-            {/* Other Value Plays in this Match */}
-            {p.value_bets.length > 1 && (
-              <div>
-                <h4 className="font-bold text-[11px] text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-                  Other value markets:
-                </h4>
-                <div className="space-y-1.5">
-                  {p.value_bets.slice(1, 4).map((vb, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center bg-white dark:bg-gray-900/60 px-2.5 py-1.5 rounded border border-slate-200 dark:border-gray-800"
-                    >
-                      <span className="font-medium text-slate-900 dark:text-white">{vb.market_name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                          <OddsText value={vb.expected_value_pct} digits={1} prefix="+" suffix="% EV" /> (<OddsText value={vb.market_odds} />)
-                        </span>
-                        <button
-                          onClick={() => onSelectBet(vb, fixture)}
-                          className="bg-slate-100 hover:bg-emerald-600 hover:text-white dark:bg-gray-800 dark:hover:bg-emerald-600 dark:hover:text-black text-slate-800 dark:text-gray-200 text-[10px] font-bold px-2 py-0.5 rounded transition-colors"
-                        >
-                          Select
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </GlassCard>
+      {detailOpen && (
+        <MatchDetailModal
+          fixture={fixture}
+          isSelected={!!isSelected}
+          onSelectBet={onSelectBet}
+          onClose={() => setDetailOpen(false)}
+        />
+      )}
+    </>
   );
 }

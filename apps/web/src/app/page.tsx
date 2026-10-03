@@ -2,7 +2,7 @@
 
 import Chip from "@/components/ui/Chip";
 import FilterSidebar from "@/components/FilterSidebar";
-import LeagueStories from "@/components/LeagueStories";
+import HeroCarousel, { HeroSlide } from "@/components/HeroCarousel";
 import MobileQuickSettings from "@/components/MobileQuickSettings";
 import { useFixtureFilters } from "@/lib/fixtureFilters";
 import React, { useState, useEffect } from "react";
@@ -19,7 +19,7 @@ import { API_BASE_URL } from "@/lib/config";
 import {
   Fixture, ValueBetItem, AccumulatorResponse, TrackRecordStats, ModelReport, ChainVerification,
 } from "@/types";
-import { Zap, ShieldCheck, Sparkles, RefreshCw, Layers, BarChart2 } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
 
 async function getJson<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
@@ -170,9 +170,56 @@ export default function Home() {
     return true;
   });
 
+  // The most confident pick gets the wide tile in the bento grid.
+  const featuredId =
+    filteredFixtures.length > 1
+      ? filteredFixtures.reduce((best, f) =>
+          (f.prediction?.likely_winner_prob ?? 0) > (best.prediction?.likely_winner_prob ?? 0) ? f : best,
+        ).id
+      : null;
+
+  const heroSlides: HeroSlide[] = [
+    {
+      id: "verify",
+      heading: "Predictions you can verify",
+      description: "Every pick is locked before kickoff and logged on a public track record, so you can check the model's results yourself.",
+      cta: "See the track record",
+      onCta: () => setActiveTab("tracker"),
+      background:
+        "radial-gradient(60% 80% at 18% 25%, rgba(16,185,129,.55), transparent 60%), radial-gradient(50% 70% at 88% 85%, rgba(59,130,246,.40), transparent 60%), linear-gradient(135deg, #04281d, #0B0F19)",
+    },
+    {
+      id: "probabilities",
+      heading: "Probabilities, not hunches",
+      description: "A model trained on 70,000+ real matches turns form, goals and head-to-head into win, draw and loss chances.",
+      cta: "How accurate are we?",
+      onCta: () => setActiveTab("accuracy"),
+      background:
+        "radial-gradient(55% 75% at 82% 20%, rgba(59,130,246,.55), transparent 60%), radial-gradient(50% 70% at 12% 90%, rgba(16,185,129,.40), transparent 60%), linear-gradient(135deg, #0a1730, #0B0F19)",
+    },
+    {
+      id: "value",
+      heading: "Find the value, not just the winner",
+      description: "The AI compares its own odds with the bookmakers' to flag bets worth backing, and sizes your stake to your bankroll.",
+      cta: "Today's 2-Odds Slip",
+      onCta: loadDailyBanker,
+      background:
+        "radial-gradient(55% 75% at 20% 80%, rgba(245,158,11,.50), transparent 60%), radial-gradient(50% 70% at 85% 15%, rgba(16,185,129,.40), transparent 60%), linear-gradient(135deg, #2a1c05, #0B0F19)",
+    },
+    {
+      id: "slip",
+      heading: "Build a smarter slip",
+      description: "Let the model combine its strongest picks into a ready-to-bet accumulator, with the risk spelled out.",
+      cta: "Build a 5-game slip",
+      onCta: () => buildMultiGameAcca(5),
+      background:
+        "radial-gradient(60% 80% at 80% 75%, rgba(16,185,129,.50), transparent 60%), radial-gradient(45% 65% at 15% 15%, rgba(245,158,11,.35), transparent 60%), linear-gradient(135deg, #062a22, #0B0F19)",
+    },
+  ];
+
   return (
     <AgeGate>
-      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0">
+      <div className={`min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0 ${activeTab === "fixtures" ? "lg:pl-[25%]" : ""}`}>
         {toastMessage && (
           <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
             <Sparkles className="w-4 h-4 fill-current" />
@@ -194,7 +241,7 @@ export default function Home() {
           onToggleTheme={toggleTheme}
         />
 
-        <main className="flex-1 max-w-6xl w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6">
+        <main className={`flex-1 w-full mx-auto px-3.5 sm:px-6 py-4 sm:py-6 ${activeTab === "fixtures" ? "max-w-[1400px]" : "max-w-6xl"}`}>
           <MobileQuickSettings
             bankroll={bankroll}
             onBankrollChange={setBankroll}
@@ -205,51 +252,7 @@ export default function Home() {
           />
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
-              {/* Hero */}
-              <div className="bg-white dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#111827] dark:to-[#0B0F19] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="max-w-3xl">
-                  <Chip tone="success" pill className="mb-2.5 !text-[11px] sm:!text-xs px-3 py-1">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Trained on 70,000+ real matches • every pick locked before kickoff</span>
-                  </Chip>
-                  <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                    Honest football predictions, <span className="text-emerald-600 dark:text-emerald-400">not guesses</span>.
-                  </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-gray-300 mt-1 leading-relaxed">
-                    Win, draw and loss chances from a model tested against the bookmakers, the reasons behind every pick,
-                    and a public track record anyone can verify.
-                  </p>
-
-                  <div className="mt-3.5 flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={loadDailyBanker}
-                      disabled={accaLoading}
-                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-black font-black text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
-                    >
-                      <Zap className="w-3.5 h-3.5 fill-current" />
-                      <span>2-Odds Slip</span>
-                    </button>
-                    {[5, 10].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => buildMultiGameAcca(n)}
-                        disabled={accaLoading}
-                        className="bg-white hover:bg-slate-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-700 flex items-center gap-1.5"
-                      >
-                        <Layers className="w-3.5 h-3.5" />
-                        <span>{n}-Game Slip</span>
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setActiveTab("accuracy")}
-                      className="text-slate-600 dark:text-gray-300 hover:text-emerald-700 dark:hover:text-emerald-400 text-xs font-semibold px-2 py-2 flex items-center gap-1"
-                    >
-                      <BarChart2 className="w-3.5 h-3.5" />
-                      <span>How accurate are we?</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <HeroCarousel slides={heroSlides} />
 
               {/* Data status */}
               <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
@@ -266,7 +269,6 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="flex flex-col items-start gap-4 lg:flex-row lg:gap-6">
               <FilterSidebar
                 leagues={leagueCounts}
                 filters={filters}
@@ -276,8 +278,6 @@ export default function Home() {
                 onCustomDate={setCustomDate}
                 onReset={reset}
               />
-              <div className="w-full min-w-0 flex-1 space-y-4 sm:space-y-6">
-              <LeagueStories leagues={leagueCounts} selected={filters.leagues} onToggle={toggleLeague} />
 
               {/* Filters */}
               <div className="space-y-2">
@@ -325,12 +325,13 @@ export default function Home() {
                   </button>
                 </p>
               ) : (
-                <div className="-mx-3.5 flex max-w-xl flex-col gap-3 sm:mx-auto sm:gap-4">
+                <div className="grid grid-flow-dense grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {filteredFixtures.map((fixture) => (
                     <MatchCard
                       key={fixture.id}
                       fixture={fixture}
                       onSelectBet={handleSelectBet}
+                      featured={fixture.id === featuredId}
                       isSelected={selectedBets.some((b) =>
                         fixture.prediction?.value_bets.some((vb) => vb.market_name === b.market_name)
                       )}
@@ -338,8 +339,6 @@ export default function Home() {
                   ))}
                 </div>
               )}
-              </div>
-              </div>
             </div>
           )}
 
