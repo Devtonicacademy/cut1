@@ -9,8 +9,10 @@ export interface HeroSlide {
   description: string;
   cta: string;
   onCta: () => void;
-  /** Tailwind-free CSS gradient layers, drawn bottom to top. */
+  /** Tailwind-free CSS gradient layers, drawn bottom to top. Also the fallback when the photo fails to load. */
   background: string;
+  /** Optional full-bleed photo drawn over the gradient. */
+  image?: string;
 }
 
 interface HeroCarouselProps {
@@ -20,6 +22,24 @@ interface HeroCarouselProps {
 }
 
 const FADE_MS = 700;
+
+/** Photo layer. A dead or blocked link hides itself so the gradient underneath shows instead of a broken icon. */
+function SlidePhoto({ src, eager }: { src: string; eager: boolean }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt=""
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+  );
+}
 
 /** Faint pitch markings so the gradients read as "football" without any external image. */
 function PitchLines() {
@@ -117,8 +137,10 @@ export default function HeroCarousel({ slides, interval = 6000 }: HeroCarouselPr
               style={{ background: s.background }}
             >
               <PitchLines />
+              {s.image && <SlidePhoto src={s.image} eager={i === 0} />}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            {/* Scrim keeps the white copy readable over bright photos. */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/10" />
 
             {/* Re-keyed on activation so the entrance animation replays each time the slide returns. */}
             <div key={isActive ? "in" : "out"} className={`relative flex h-full max-w-2xl flex-col justify-end gap-3 px-14 py-6 sm:px-16 sm:py-8 lg:px-20 lg:py-10 ${isActive ? "hero-copy-in" : ""}`}>
