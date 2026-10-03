@@ -8,7 +8,7 @@ import asyncio
 import secrets
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 
@@ -19,7 +19,11 @@ from apps.api.app.models.schemas import (
     AccumulatorRequest, AccumulatorResponse,
     TrackRecordStats
 )
-from apps.api.app import jobs
+from apps.api.app import accounts, auth, jobs
+from apps.api.app.models.accounts import (
+    AuthConfig, GoogleSignIn, PredictionReport, SaveFixtureRequest, SavedFixture, SessionInfo,
+)
+from apps.api.app.tracking import reports
 from apps.api.app.services.fixture_service import FixtureService
 from apps.api.app.services.kelly_engine import KellyEngine
 from apps.api.app.services.accas_optimizer import AccasOptimizer
@@ -55,7 +59,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in os.getenv(
         "ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()],
-    allow_methods=["GET", "POST"],
+    allow_credentials=True,  # origins are an explicit list, never "*"
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type", "X-Admin-Token"],
 )
 
@@ -174,3 +179,74 @@ async def export_track_record():
 async def run_pipeline_now():
     """Runs one refresh -> predict -> lock -> grade cycle immediately."""
     return await jobs.run_cycle(fixture_service)
+
+
+# ---- Accounts: Sign in with Google, saved fixtures, admin reports ----
+
+@app.get("/api/v1/auth/config", response_model=AuthConfig)
+def auth_config():
+    """Lets the site fetch the (public) Google client id at runtime instead of baking it into the build."""
+    return AuthConfig(google_client_id=auth.google_client_id())
+
+
+@app.post("/api/v1/auth/google", response_model=SessionInfo)
+def sign_in_with_google(body: GoogleSignIn, request: Request, response: Response):
+    try:
+        claims = auth.verify_google_credential(body.credential)
+    except ValueError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+    except Exception:  # bad signature, expired, wrong audience, certificates unreachable...
+        raise HTTPException(status_code=401, detail="Could not verify the Google sign-in")
+    token = auth.create_session(claims)
+    response.set_cookie(
+        auth.COOKIE_NAME, token, max_age=auth.SESSION_DAYS * 86400, httponly=True,
+        samesite="lax", secure=auth.cookie_secure(request), path="/",
+    )
+    return SessionInfo(user=auth.to_user(auth.user_for_token(token)))
+
+
+@app.get("/api/v1/auth/me", response_model=SessionInfo)
+def whoami(user=Depends(auth.optional_user)):
+    return SessionInfo(user=auth.to_user(user) if user else None)
+
+
+@app.post("/api/v1/auth/logout", response_model=SessionInfo)
+def sign_out(request: Request, response: Response):
+    token = request.cookies.get(auth.COOKIE_NAME)
+    if token:
+        auth.delete_session(token)
+    response.delete_cookie(auth.COOKIE_NAME, path="/")
+    return SessionInfo(user=None)
+
+
+@app.get("/api/v1/me/saved", response_model=List[SavedFixture])
+async def my_saved_fixtures(user=Depends(auth.require_user)):
+    live = {f.id: f for f in await fixture_service.get_all_fixtures_with_predictions()}
+    return accounts.list_saved(user["id"], live)
+
+
+@app.post("/api/v1/me/saved", response_model=List[SavedFixture])
+async def save_fixture(body: SaveFixtureRequest, user=Depends(auth.require_user)):
+    fixture = await fixture_service.get_fixture_by_id(body.fixture_id)
+    if not fixture:
+        raise HTTPException(status_code=404, detail="That fixture is no longer available")
+    try:
+        accounts.save(user["id"], fixture)
+    except accounts.SavedLimitReached:
+        raise HTTPException(status_code=409, detail=f"You can save up to {accounts.MAX_SAVED_PER_USER} fixtures")
+    live = {f.id: f for f in await fixture_service.get_all_fixtures_with_predictions()}
+    return accounts.list_saved(user["id"], live)
+
+
+@app.delete("/api/v1/me/saved/{fixture_id}", response_model=List[SavedFixture])
+async def unsave_fixture(fixture_id: str, user=Depends(auth.require_user)):
+    accounts.unsave(user["id"], fixture_id)
+    live = {f.id: f for f in await fixture_service.get_all_fixtures_with_predictions()}
+    return accounts.list_saved(user["id"], live)
+
+
+@app.get("/api/v1/admin/reports/predictions", response_model=PredictionReport)
+def prediction_report(limit: int = Query(300, ge=1, le=2000), _admin=Depends(auth.require_admin_role)):
+    """Locked predictions against the actual results. Admin role only (see auth.ADMIN_EMAILS)."""
+    with db.connect() as conn:
+        return reports.build_report(conn, limit)

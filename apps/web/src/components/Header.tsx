@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { Database, Layers, Sun, Moon, Settings, Trophy, Wallet, ShieldCheck, BarChart3 } from "lucide-react";
+import { Database, Layers, Sun, Moon, Settings, Trophy, Wallet, ShieldCheck, BarChart3, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import AccountMenu from "@/components/auth/AccountMenu";
 
 interface HeaderProps {
   bankroll: number;
@@ -30,6 +32,7 @@ export default function Header({
   onToggleTheme,
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
   return (
     <header className="sticky top-0 z-40 hidden md:block bg-white/95 dark:bg-surface-glass backdrop-blur-md border-b border-slate-200 dark:border-gray-800 transition-colors duration-150">
       {/* Top Ticker: Live Lagos Market Insights */}
@@ -60,6 +63,8 @@ export default function Header({
 
         {/* Center / Right Action Group */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
+          <AccountMenu onNavigate={onSelectTab} />
+
           {/* Settings menu: theme + data saver */}
           <div className="relative">
             <button
@@ -181,6 +186,33 @@ export default function Header({
             <BarChart3 className="w-3.5 h-3.5" />
             <span>Accuracy</span>
           </button>
+          {user && (
+            <button
+              onClick={() => onSelectTab("dashboard")}
+              className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                activeTab === "dashboard"
+                  ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>My Dashboard</span>
+            </button>
+          )}
+
+          {user?.role === "admin" && (
+            <button
+              onClick={() => onSelectTab("admin")}
+              className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                activeTab === "admin"
+                  ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+              <span>Admin</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

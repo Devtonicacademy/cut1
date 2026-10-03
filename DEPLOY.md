@@ -19,10 +19,12 @@ Two services built from this repo, no Caddy. The web service forwards `/api/*` t
 
 | Service | Dockerfile (`RAILWAY_DOCKERFILE_PATH`) | Volume | Variables |
 |---|---|---|---|
-| `api` | `apps/api/Dockerfile` | `/app/data` | `PORT=8000`, `RAILWAY_RUN_UID=0` (volumes mount as root), `ADMIN_TOKEN`, `FOOTBALL_DATA_KEY`, `GEMINI_API_KEY` (optional) |
+| `api` | `apps/api/Dockerfile` | `/app/data` | `PORT=8000`, `RAILWAY_RUN_UID=0` (volumes mount as root), `ADMIN_TOKEN`, `FOOTBALL_DATA_KEY`, `GOOGLE_CLIENT_ID` (for sign-in), `ADMIN_EMAILS` (optional), `GEMINI_API_KEY` (optional) |
 | `web` | `apps/web/Dockerfile` | none | `API_INTERNAL_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8000` |
 
-Give only `web` a public domain. Set the `api` health check path to `/api/v1/health`. Keep the API at one replica, because the scheduler runs inside it.
+Give only `web` a public domain.
+
+**Sign in with Google (accounts, saved fixtures, admin reports).** In [Google Cloud Console](https://console.cloud.google.com/apis/credentials) create an OAuth client ID of type *Web application*, add the site's public address under *Authorized JavaScript origins*, and put the client ID in the `api` service's `GOOGLE_CLIENT_ID`. Until it is set, the site hides sign-in. Admins are the emails in `ADMIN_EMAILS` (default `devtonicllc@gmail.com`); they must sign in with a Google-verified address, and the role is checked on the server for every request. Set the `api` health check path to `/api/v1/health`. Keep the API at one replica, because the scheduler runs inside it.
 
 ---
 
