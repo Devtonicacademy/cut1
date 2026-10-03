@@ -277,6 +277,10 @@ def refresh(min_interval_minutes: int = 10) -> Dict:
         apif_due = _older_than(conn, "last_api_football_refresh", dt.timedelta(hours=API_FOOTBALL_REFRESH_HOURS))
         odds_due = _older_than(conn, "last_odds_api_refresh",
                                dt.timedelta(hours=float(os.getenv("ODDS_API_REFRESH_HOURS", "8"))))
+        # Crests are collected by those two feeds. A database that predates them (or whose feeds were skipped)
+        # has none, so pull the feeds now instead of waiting out their refresh interval.
+        no_crests = db.crest_count(conn) == 0
+        fdorg_due, apif_due = fdorg_due or no_crests, apif_due or no_crests
     if recent:
         return {"skipped": f"refreshed less than {min_interval_minutes} minutes ago"}
 

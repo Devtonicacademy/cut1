@@ -106,3 +106,28 @@ def test_crests_round_trip_and_newer_urls_replace_older(tmp_path):
         ]) == 2
         db.upsert_crests(conn, [{"kind": "team", "key": "Man City", "url": "new"}])
         assert db.load_crests(conn) == {"team": {"Man City": "new"}, "league": {"E0": "https://crests.example/PL.png"}}
+
+
+def test_refresh_pulls_the_crest_feeds_early_only_while_no_crests_are_stored(monkeypatch, tmp_path):
+    from apps.api.app.data import ingest
+
+    monkeypatch.setenv("LIVELYBORG_DB_PATH", str(tmp_path / "r.db"))
+    monkeypatch.setattr(ingest, "is_offline", lambda: False)
+    calls = []
+    for name in ("ingest_history", "ingest_fixtures", "ingest_national_history", "ingest_odds_api"):
+        monkeypatch.setattr(ingest, name, lambda *a, _n=name, **k: calls.append(_n) or {})
+    monkeypatch.setattr(ingest, "ingest_fd_org_fixtures", lambda *a, **k: calls.append("fdorg") or {})
+    monkeypatch.setattr(ingest, "ingest_api_football_fixtures", lambda *a, **k: calls.append("apif") or {})
+
+    recent = ingest._now_utc().isoformat()
+    with db.connect() as conn:  # every feed was refreshed a moment ago, but no crest was ever stored
+        for key in ("last_fdorg_refresh", "last_api_football_refresh", "last_national_refresh", "last_odds_api_refresh"):
+            db.set_meta(conn, key, recent)
+    ingest.refresh(min_interval_minutes=0)
+    assert "fdorg" in calls and "apif" in calls
+
+    with db.connect() as conn:
+        db.upsert_crests(conn, [{"kind": "league", "key": "E0", "url": "https://crests.example/PL.png"}])
+    calls.clear()
+    ingest.refresh(min_interval_minutes=0)
+    assert "fdorg" not in calls and "apif" not in calls  # back to the normal interval
