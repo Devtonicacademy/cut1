@@ -166,17 +166,17 @@ export default function SmartAccaModal({
                 <div className="min-w-0">
                   <span className="font-extrabold text-slate-900 dark:text-white block truncate">{leg.match_name}</span>
                   <span className="text-emerald-700 dark:text-emerald-400 font-semibold">{leg.market}</span>
-                  {leg.league && <span className="text-[10px] text-slate-400 dark:text-gray-500 ml-1.5">• {leg.league}</span>}
+                  {leg.league && <span className="text-[10px] text-slate-500 dark:text-gray-400 ml-1.5">• {leg.league}</span>}
                 </div>
                 <div className="text-right shrink-0 ml-2">
                   <span className="font-mono font-extrabold text-slate-900 dark:text-white text-sm">{leg.odds.toFixed(2)}</span>
-                  <span className="block text-[10px] text-slate-400 dark:text-gray-500">{(leg.model_probability * 100).toFixed(0)}% likely</span>
+                  <span className="block text-[10px] text-slate-500 dark:text-gray-400">{(leg.model_probability * 100).toFixed(0)}% likely</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <p className="text-[10px] text-slate-400 dark:text-gray-500">
+          <p className="text-[10px] text-slate-500 dark:text-gray-400">
             Booking codes aren&apos;t available: add each match on your bookmaker&apos;s site. Predictions are probabilities, not guarantees. 18+.
           </p>
         </div>

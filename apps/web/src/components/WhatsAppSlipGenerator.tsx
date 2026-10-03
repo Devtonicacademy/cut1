@@ -74,7 +74,7 @@ export default function WhatsAppSlipGenerator({ data, onClose }: WhatsAppSlipGen
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-2 text-center">Predictions, not guarantees. 18+ only.</p>
+            <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-2 text-center">Predictions, not guarantees. 18+ only.</p>
           </div>
         </div>
 

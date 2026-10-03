@@ -188,7 +188,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
               {p.key_factors.map((factor, i) => <li key={i}>{factor}</li>)}
             </ul>
             {p.prediction_source && (
-              <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1.5">{p.prediction_source}</p>
+              <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-1.5">{p.prediction_source}</p>
             )}
           </div>
         )}
@@ -246,7 +246,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             <p className="text-slate-500 dark:text-gray-400">No bookmaker odds published yet for this match.</p>
           )}
           <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200 dark:border-gray-800/60">
-            <span className="text-[10px] text-slate-400 dark:text-gray-500 mr-auto">
+            <span className="text-[10px] text-slate-500 dark:text-gray-400 mr-auto">
               {copiedBook ? `Match name copied: paste it into ${copiedBook} search` : "Check live odds:"}
             </span>
             {[
@@ -333,7 +333,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                     >
                       <div className="text-slate-600 dark:text-gray-400 truncate max-w-[130px] sm:max-w-none">
                         <span className="font-semibold text-slate-800 dark:text-gray-200">{m.date}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-gray-500 ml-1 hidden xs:inline">({m.competition})</span>
+                        <span className="text-[10px] text-slate-500 dark:text-gray-400 ml-1 hidden xs:inline">({m.competition})</span>
                       </div>
 
                       <div className="flex items-center gap-2">

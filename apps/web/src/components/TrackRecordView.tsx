@@ -112,7 +112,7 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
               <tr key={entry.id} className="hover:bg-slate-50 dark:hover:bg-gray-800/40 transition-colors">
                 <td className="p-3">
                   <span className="font-bold text-slate-900 dark:text-white block">{entry.match}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-gray-500 font-mono">{entry.date}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-gray-400 font-mono">{entry.date}</span>
                 </td>
                 <td className="p-3 font-semibold text-emerald-700 dark:text-emerald-300">{entry.prediction}</td>
                 <td className="p-3 font-mono font-bold">{entry.odds.toFixed(2)}</td>

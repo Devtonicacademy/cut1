@@ -103,7 +103,7 @@ export default function KellyCalculator({
             onChange={(e) => onBankrollChange(Number(e.target.value))}
             className="w-full h-2 bg-slate-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
           />
-          <div className="flex justify-between text-[10px] text-slate-400 dark:text-gray-500 mt-1">
+          <div className="flex justify-between text-[10px] text-slate-500 dark:text-gray-400 mt-1">
             <span>₦2,000</span>
             <span>₦50,000</span>
             <span>₦100,000</span>
@@ -170,7 +170,7 @@ export default function KellyCalculator({
       {selectedBets.length === 0 ? (
         <div className="text-center py-8 bg-slate-50 dark:bg-gray-900/30 rounded-lg border border-dashed border-slate-200 dark:border-gray-800">
           <p className="text-slate-600 dark:text-gray-400 text-sm font-medium">No value bets selected yet.</p>
-          <p className="text-slate-400 dark:text-gray-500 text-xs mt-1">
+          <p className="text-slate-500 dark:text-gray-400 text-xs mt-1">
             Tap &quot;Stake&quot; on any match card to calculate your optimal Naira stake.
           </p>
         </div>

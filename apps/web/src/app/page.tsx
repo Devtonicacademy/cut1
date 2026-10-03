@@ -276,7 +276,7 @@ export default function Home() {
 
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-gray-800/60 pt-2 flex-wrap gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 dark:text-gray-500">Confidence:</span>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-gray-400">Confidence:</span>
                     {[
                       { key: "All", label: "All matches" },
                       { key: "Bankers", label: "70%+", dot: "bg-emerald-500" },
@@ -351,7 +351,7 @@ export default function Home() {
           showKelly={showKelly}
         />
 
-        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#0B0F19] py-6 px-4 text-xs text-slate-500 dark:text-gray-500 text-center">
+        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#0B0F19] py-6 px-4 text-xs text-slate-500 dark:text-gray-400 text-center">
           <div className="max-w-3xl mx-auto space-y-2">
             <p className="text-slate-600 dark:text-gray-400 font-semibold">
               18+ only. Predictions are probabilities, not guarantees. Never bet more than you can afford to lose.
@@ -367,7 +367,7 @@ export default function Home() {
               </a>{" "}
               for free, confidential support.
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-gray-600">
+            <p className="text-[11px] text-slate-500 dark:text-gray-400">
               Data: football-data.co.uk and football-data.org. © 2026 LivelyBorg Technologies.
             </p>
           </div>
