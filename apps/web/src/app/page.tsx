@@ -385,12 +385,12 @@ export default function Home() {
                   </button>
                 </p>
               ) : (
-                <div className="grid grid-flow-dense grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-flow-dense grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {filteredFixtures.map((fixture, i) => (
                     <Reveal
                       key={fixture.id}
                       delay={staggerDelay(i % 3)}
-                      className={fixture.id === featuredId ? "lg:col-span-2" : undefined}
+                      className={fixture.id === featuredId ? "md:col-span-2" : undefined}
                     >
                       <MatchCard
                         fixture={fixture}
