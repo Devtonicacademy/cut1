@@ -223,6 +223,10 @@ def upsert_crests(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
     return len(data)
 
 
+def crest_count(conn: sqlite3.Connection) -> int:
+    return conn.execute("SELECT COUNT(*) FROM crests").fetchone()[0]
+
+
 def load_crests(conn: sqlite3.Connection) -> Dict[str, Dict[str, str]]:
     """{"team": {name: url}, "league": {code: url}}"""
     out: Dict[str, Dict[str, str]] = {"team": {}, "league": {}}
