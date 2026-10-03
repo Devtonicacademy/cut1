@@ -32,7 +32,7 @@ export default function MobileQuickSettings({
     <div className="mb-4 flex items-center justify-between gap-2 md:hidden">
       <div className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-base font-black text-black">LB</div>
-        <span className="font-display text-base font-black tracking-tight text-slate-900 dark:text-white">
+        <span className="hidden font-display text-base font-black tracking-tight text-slate-900 dark:text-white min-[430px]:inline">
           LIVELYBORG <span className="text-emerald-500">AI</span>
         </span>
       </div>

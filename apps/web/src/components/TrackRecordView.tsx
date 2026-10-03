@@ -3,6 +3,9 @@
 import React from "react";
 import { ChainVerification, TrackRecordStats } from "@/types";
 import { ShieldCheck, ShieldAlert, Award, CheckCircle2, XCircle } from "lucide-react";
+import { useTrackMatches } from "@/components/records/useTrackMatches";
+import OngoingMatches from "@/components/records/OngoingMatches";
+import PastMatches from "@/components/records/PastMatches";
 
 interface TrackRecordViewProps {
   stats: TrackRecordStats | null;
@@ -13,6 +16,7 @@ const signedNaira = (x: number) => `${x < 0 ? "-" : "+"}₦${Math.abs(x).toLocal
 const signedPct = (x: number) => `${x < 0 ? "" : "+"}${x.toFixed(1)}%`;
 
 export default function TrackRecordView({ stats, verification }: TrackRecordViewProps) {
+  const { data: matches, failed, reload } = useTrackMatches();
   if (!stats) return null;
   const graded = stats.wins + stats.losses;
 
@@ -86,7 +90,25 @@ export default function TrackRecordView({ stats, verification }: TrackRecordView
         </div>
       </div>
 
+      {/* Matches in play and results, next to the prediction locked for each */}
+      {matches ? (
+        <>
+          <OngoingMatches matches={matches.ongoing} />
+          <PastMatches matches={matches.past} summary={matches.summary} />
+        </>
+      ) : (
+        <p className="mb-8 text-center text-xs text-slate-500 dark:text-gray-400">
+          {failed ? (
+            <>Could not load match results. <button onClick={reload} className="font-bold text-emerald-500 hover:underline">Try again</button></>
+          ) : (
+            "Loading matches…"
+          )}
+        </p>
+      )}
+
       {/* Historical Ledger Table */}
+      <h3 className="mb-1 font-display text-base font-semibold text-slate-900 dark:text-white">Full ledger</h3>
+      <p className="mb-3 text-xs text-slate-500 dark:text-gray-400">Every locked prediction with the odds, the notional ₦1,000 stake and its return.</p>
       <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-gray-800">
         <table className="w-full text-left text-xs text-slate-700 dark:text-gray-300">
           <thead className="bg-slate-100 dark:bg-gray-900/90 text-slate-600 dark:text-gray-400 font-bold uppercase text-[10px] border-b border-slate-200 dark:border-gray-800">

@@ -121,6 +121,17 @@ CREATE TABLE IF NOT EXISTS saved_fixtures (
     PRIMARY KEY (user_id, fixture_id)
 );
 
+-- Running scores from the live feed, display only: results are still graded from the official results
+-- file (see tracking/ledger.py), never from these rows. Keyed by the ledger's fixture id.
+CREATE TABLE IF NOT EXISTS live_scores (
+    fixture_id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    home_goals INTEGER,
+    away_goals INTEGER,
+    minute INTEGER,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS predictions (
     seq INTEGER PRIMARY KEY AUTOINCREMENT,
     fixture_id TEXT NOT NULL UNIQUE,
@@ -250,6 +261,19 @@ def upsert_crests(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
     data = [(r["kind"], r["key"], r["url"]) for r in rows if r.get("url")]
     conn.executemany("INSERT OR REPLACE INTO crests (kind, key, url) VALUES (?, ?, ?)", data)
     return len(data)
+
+
+def upsert_live_scores(conn: sqlite3.Connection, rows: Iterable[Dict]) -> int:
+    data = [(r["fixture_id"], r["status"], r.get("home_goals"), r.get("away_goals"), r.get("minute"), r["updated_at"]) for r in rows]
+    conn.executemany(
+        "INSERT OR REPLACE INTO live_scores (fixture_id, status, home_goals, away_goals, minute, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+        data,
+    )
+    return len(data)
+
+
+def load_live_scores(conn: sqlite3.Connection) -> Dict[str, Dict]:
+    return {r["fixture_id"]: dict(r) for r in conn.execute("SELECT * FROM live_scores")}
 
 
 def crest_count(conn: sqlite3.Connection) -> int:

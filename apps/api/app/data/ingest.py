@@ -163,6 +163,65 @@ def ingest_fd_org_fixtures(days_ahead: int = 14) -> Dict:
     return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}
 
 
+LIVE_WINDOW_HOURS = 3  # a match counts as in play from kickoff until this long after
+
+
+def live_competitions(conn, now: dt.datetime) -> Dict[str, List[Dict]]:
+    """football-data.org competition code -> ledger entries that kicked off recently and have no result yet."""
+    code_for_div = {div: code for code, div in fdorg.COMPETITIONS.items()}
+    rows = conn.execute(
+        "SELECT fixture_id, div, home_team, away_team, kickoff_utc FROM predictions "
+        "WHERE graded_at IS NULL AND kickoff_utc <= ? AND kickoff_utc > ?",
+        (now.isoformat(), (now - dt.timedelta(hours=LIVE_WINDOW_HOURS)).isoformat()),
+    ).fetchall()
+    by_code: Dict[str, List[Dict]] = {}
+    for r in rows:
+        if r["div"] in code_for_div:
+            by_code.setdefault(code_for_div[r["div"]], []).append(dict(r))
+    return by_code
+
+
+def ingest_live_scores(now: Optional[dt.datetime] = None) -> Dict:
+    """
+    Running scores for matches in play (needs FOOTBALL_DATA_KEY). One request per competition that has a locked
+    prediction kicking off in the last few hours, so it costs nothing when no such match exists. The scores are
+    shown on the site only; they never grade a prediction.
+    """
+    if is_offline():
+        return {"skipped": "offline mode"}
+    key = os.getenv("FOOTBALL_DATA_KEY")
+    if not key:
+        return {"skipped": "FOOTBALL_DATA_KEY not set"}
+    now = now or _now_utc()
+    errors: List[str] = []
+    rows: List[Dict] = []
+    with db.connect() as conn:
+        wanted = live_competitions(conn, now)
+        if not wanted:
+            return {"polled": 0}
+        with _client() as client:
+            for i, (code, entries) in enumerate(wanted.items()):
+                if i:
+                    time.sleep(FD_ORG_PAUSE_SECONDS)
+                try:
+                    response = client.get(
+                        fdorg.matches_url(code, now.date() - dt.timedelta(days=1), now.date() + dt.timedelta(days=1)),
+                        headers={"X-Auth-Token": key})
+                    response.raise_for_status()
+                    live = fdorg.parse_live_scores(response.json(), {e["home_team"] for e in entries} | {e["away_team"] for e in entries})
+                except (httpx.HTTPError, ValueError) as e:  # includes 429: skip this poll, try again next time
+                    errors.append(f"{code}: {e}")
+                    continue
+                by_teams = {(e["home_team"], e["away_team"]): e for e in entries}
+                for m in live:
+                    entry = by_teams.get((m["home_team"], m["away_team"]))
+                    if entry:
+                        rows.append({"fixture_id": entry["fixture_id"], "status": m["status"], "home_goals": m["home_goals"],
+                                     "away_goals": m["away_goals"], "minute": m["minute"], "updated_at": now.isoformat()})
+        db.upsert_live_scores(conn, rows)
+    return {"polled": len(wanted), "updated": len(rows), "errors": errors}
+
+
 def ingest_national_history() -> Dict:
     """Downloads the full international results file (about 3 MB) into the national_matches table."""
     with _client() as client:
