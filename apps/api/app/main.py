@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[3] / ".env")
 
 import asyncio
+import datetime as dt
 import secrets
 from contextlib import asynccontextmanager
 
@@ -23,7 +24,8 @@ from apps.api.app import accounts, auth, jobs
 from apps.api.app.models.accounts import (
     AuthConfig, GoogleSignIn, PredictionReport, SaveFixtureRequest, SavedFixture, SessionInfo,
 )
-from apps.api.app.tracking import reports
+from apps.api.app.tracking import matches as track_matches, reports
+from apps.api.app.models.records import MatchesResponse
 from apps.api.app.services.fixture_service import FixtureService
 from apps.api.app.services.kelly_engine import KellyEngine
 from apps.api.app.services.accas_optimizer import AccasOptimizer
@@ -39,11 +41,13 @@ async def _refresh_data() -> dict:
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Refresh -> predict -> lock -> grade every few hours, retraining weekly (apps/api/app/jobs.py)
-    task = None
+    tasks = []
     if os.getenv("LIVELYBORG_AUTO_REFRESH", "1") == "1":
-        task = asyncio.create_task(jobs.scheduler_loop(fixture_service))
+        tasks.append(asyncio.create_task(jobs.scheduler_loop(fixture_service)))
+        if os.getenv("LIVELYBORG_LIVE_POLL", "1") == "1":
+            tasks.append(asyncio.create_task(jobs.live_loop()))
     yield
-    if task:
+    for task in tasks:
         task.cancel()
 
 
@@ -164,6 +168,12 @@ async def build_smart_accumulator(req: AccumulatorRequest):
 async def get_public_track_record():
     """Every prediction locked before kickoff, graded automatically from official results."""
     return tracker_service.get_public_stats()
+
+@app.get("/api/v1/track-record/matches", response_model=MatchesResponse)
+def track_record_matches(limit: int = Query(60, ge=1, le=300)):
+    """Matches in play and recent results next to the prediction locked for each (public, like the ledger)."""
+    with db.connect() as conn:
+        return track_matches.build(conn, dt.datetime.now(dt.timezone.utc), limit)
 
 @app.get("/api/v1/track-record/verify")
 async def verify_track_record():

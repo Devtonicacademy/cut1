@@ -18,10 +18,11 @@ export default function AccountMenu({ onNavigate }: AccountMenuProps) {
     return (
       <button
         onClick={openSignIn}
-        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100 dark:border-glass dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700"
+        aria-label="Sign in"
+        className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold sm:px-3 sm:py-1.5 text-slate-700 transition-colors hover:bg-slate-100 dark:border-glass dark:bg-slate-800 dark:text-gray-200 dark:hover:bg-slate-700"
       >
         <UserIcon className="h-4 w-4" />
-        Sign in
+        <span className="hidden sm:inline">Sign in</span>
       </button>
     );
   }

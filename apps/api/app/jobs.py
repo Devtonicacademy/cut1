@@ -79,6 +79,19 @@ async def run_cycle(fixture_service: FixtureService) -> Dict:
         return {"refresh": refresh, "locked": locked, **graded, "explanations": explained}
 
 
+async def live_loop() -> None:
+    """Polls running scores every LIVELYBORG_LIVE_POLL_SECONDS. A no-op (one cheap query) while no match is on."""
+    interval = float(os.getenv("LIVELYBORG_LIVE_POLL_SECONDS", "90"))
+    while True:
+        try:
+            result = await asyncio.to_thread(ingest.ingest_live_scores)
+            if result.get("polled") or result.get("errors"):
+                print(f"[live] {result}")
+        except Exception as e:  # never let the live feed take the API down
+            print(f"[live] poll failed: {e}")
+        await asyncio.sleep(interval)
+
+
 def model_age_days() -> float:
     if not ml_predictor.REPORT_PATH.exists():
         return float("inf")

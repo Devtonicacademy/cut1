@@ -253,3 +253,45 @@ export interface PredictionReport {
     home_goals: number | null; away_goals: number | null; actual: "1" | "X" | "2" | null; correct: boolean | null;
   }[];
 }
+
+
+export interface MatchSideInfo {
+  league: string;
+  league_crest: string | null;
+  home_team: string;
+  away_team: string;
+  home_crest: string | null;
+  away_crest: string | null;
+  kickoff_utc: string;
+  p_home: number;
+  p_draw: number;
+  p_away: number;
+  pick: "1" | "X" | "2";
+}
+
+export interface OngoingMatch extends MatchSideInfo {
+  id: string;
+  minutes_since_kickoff: number;
+  live_status: "IN_PLAY" | "PAUSED" | null;
+  home_goals: number | null;
+  away_goals: number | null;
+  minute: number | null;
+  score_updated_at: string | null;
+}
+
+export interface PastMatch extends MatchSideInfo {
+  id: string;
+  status: "graded" | "awaiting";
+  home_goals: number | null;
+  away_goals: number | null;
+  actual: "1" | "X" | "2" | null;
+  correct: boolean | null;
+  provisional: boolean;
+}
+
+export interface TrackMatches {
+  generated_at: string;
+  summary: { graded: number; correct: number; accuracy_pct: number };
+  ongoing: OngoingMatch[];
+  past: PastMatch[];
+}

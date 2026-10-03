@@ -161,6 +161,42 @@ def parse_cross_country_matches(
     return rows, unmatched
 
 
+LIVE_STATUSES = ("IN_PLAY", "PAUSED", "FINISHED")
+
+
+def _goals(score: Mapping, key: str):
+    part = (score or {}).get(key) or {}
+    home, away = part.get("home"), part.get("away")
+    return (home, away) if home is not None and away is not None else None
+
+
+def parse_live_scores(payload: Mapping, candidates: Iterable[str]) -> List[Dict]:
+    """
+    Matches that are under way or just finished -> {home_team, away_team, kickoff_utc, status, home_goals,
+    away_goals, minute}. Names are mapped to ours; matches with an unmapped team are dropped. The running
+    score is the full-time figure, or the half-time one when that is all the feed has yet.
+    """
+    matches = [m for m in payload.get("matches", []) if m.get("status") in LIVE_STATUSES]
+    fd_teams = {t["id"]: t for m in matches for t in (m["homeTeam"], m["awayTeam"]) if t.get("id")}
+    mapping, _ = match_teams(fd_teams.values(), candidates)
+    rows = []
+    for m in matches:
+        home, away = mapping.get(m["homeTeam"].get("id")), mapping.get(m["awayTeam"].get("id"))
+        if not home or not away:
+            continue
+        score = m.get("score") or {}
+        goals = _goals(score, "fullTime") or _goals(score, "halfTime")
+        minute = m.get("minute")
+        rows.append({
+            "home_team": home, "away_team": away,
+            "kickoff_utc": dt.datetime.fromisoformat(m["utcDate"].replace("Z", "+00:00")).isoformat(),
+            "status": m["status"],
+            "home_goals": goals[0] if goals else None, "away_goals": goals[1] if goals else None,
+            "minute": int(minute) if isinstance(minute, (int, float)) or (isinstance(minute, str) and minute.isdigit()) else None,
+        })
+    return rows
+
+
 def extract_crests(
     payload: Mapping, key: str, candidates: Iterable[str], threshold: float = MATCH_THRESHOLD
 ) -> List[Dict]:
