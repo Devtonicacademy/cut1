@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Zap, Database, Layers, Sun, Moon } from "lucide-react";
+import React, { useState } from "react";
+import { Database, Layers, Sun, Moon, Settings } from "lucide-react";
 
 interface HeaderProps {
   bankroll: number;
@@ -24,12 +24,12 @@ export default function Header({
   onToggleDataSaver,
   activeTab,
   onSelectTab,
-  onOpenBankerModal,
   onOpenAccaBuilder,
   showKelly,
   isDarkMode,
   onToggleTheme,
 }: HeaderProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 bg-white/95 dark:bg-surface-glass backdrop-blur-md border-b border-slate-200 dark:border-gray-800 transition-colors duration-150">
       {/* Top Ticker: Live Lagos Market Insights */}
@@ -37,11 +37,6 @@ export default function Header({
         <div className="flex items-center gap-1.5 truncate">
           <span className="flex h-2 w-2 rounded-full bg-emerald-300 animate-pulse shrink-0" />
           <span className="truncate">Predictions are probabilities, not guarantees. Every pick is locked before kickoff.</span>
-        </div>
-        <div className="hidden md:flex items-center gap-3 shrink-0">
-          <span>18+ only • Bet responsibly</span>
-          <span className="opacity-40">|</span>
-          <span>Not affiliated with any bookmaker</span>
         </div>
       </div>
 
@@ -65,33 +60,46 @@ export default function Header({
 
         {/* Center / Right Action Group */}
         <div className="flex items-center gap-1.5 sm:gap-2.5">
-          {/* Light / Dark Mode Toggle */}
-          <button
-            onClick={onToggleTheme}
-            className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-gray-700 bg-slate-100 hover:bg-slate-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-700 dark:text-gray-300 transition-colors shadow-2xs"
-            title={isDarkMode ? "Switch to Clean Light Mode" : "Switch to Dark Mode"}
-            aria-label="Toggle theme"
-          >
-            {isDarkMode ? (
-              <Sun className="w-4 h-4 text-amber-400 animate-in spin-in-90 duration-200" />
-            ) : (
-              <Moon className="w-4 h-4 text-slate-700 animate-in spin-in-90 duration-200" />
+          {/* Settings menu: theme + data saver */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-glass bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-gray-300 transition-colors"
+              aria-label="Settings"
+              aria-expanded={menuOpen}
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 mt-2 w-60 z-50 rounded-panel border border-slate-200 dark:border-white/[0.12] bg-white dark:bg-surface-modal dark:backdrop-blur-modal dark:shadow-modal p-1.5 text-xs">
+                  <button
+                    onClick={onToggleTheme}
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-200"
+                  >
+                    <span className="flex items-center gap-2">
+                      {isDarkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
+                      {isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={onToggleDataSaver}
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-gray-200 text-left"
+                    title="Saves data for MTN / Airtel / Glo networks"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Database className="w-4 h-4" />
+                      Data Saver
+                    </span>
+                    <span className={`font-mono text-[10px] font-semibold px-1.5 py-0.5 rounded-chip border ${dataSaver ? "text-amber-500 border-amber-500/30 bg-amber-500/[0.12]" : "text-slate-500 border-slate-300 dark:border-white/[0.08]"}`}>
+                      {dataSaver ? "ON" : "OFF"}
+                    </span>
+                  </button>
+                </div>
+              </>
             )}
-          </button>
-
-          {/* Data Saver Mode Toggle */}
-          <button
-            onClick={onToggleDataSaver}
-            className={`px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all border ${
-              dataSaver
-                ? "bg-amber-100 dark:bg-amber-950/70 border-amber-400 text-amber-900 dark:text-amber-300"
-                : "bg-slate-100 dark:bg-gray-800/80 border-slate-200 dark:border-gray-700 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-gray-700"
-            }`}
-            title="Saves data for MTN / Airtel / Glo networks"
-          >
-            <Database className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{dataSaver ? "Data Saver: ON" : "Data Saver"}</span>
-          </button>
+          </div>
 
           {/* Quick Bankroll Selector */}
           <div className="bg-slate-100 dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-lg px-2 py-1 flex items-center gap-1 text-xs">
@@ -108,26 +116,6 @@ export default function Header({
               <option value={100000} className="bg-white text-slate-900 dark:bg-gray-900 dark:text-white">₦100,000</option>
             </select>
           </div>
-
-          {/* Acca Builder Quick Button */}
-          {onOpenAccaBuilder && (
-            <button
-              onClick={() => onOpenAccaBuilder(5)}
-              className="hidden lg:flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-sm transition-colors"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Slip Builder</span>
-            </button>
-          )}
-
-          {/* Instant 2-Odds Banker Button */}
-          <button
-            onClick={onOpenBankerModal}
-            className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white dark:text-black font-extrabold text-xs px-2.5 sm:px-3 py-1.5 rounded-lg hidden md:flex items-center gap-1 shadow-sm transition-all"
-          >
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span className="whitespace-nowrap">2-Odds Slip</span>
-          </button>
         </div>
       </div>
 

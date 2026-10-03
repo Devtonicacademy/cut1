@@ -1,5 +1,6 @@
 "use client";
 
+import Chip from "@/components/ui/Chip";
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
@@ -197,10 +198,10 @@ export default function Home() {
               {/* Hero */}
               <div className="bg-white dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#111827] dark:to-[#0B0F19] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full mb-2.5">
+                  <Chip tone="success" pill className="mb-2.5 !text-[11px] sm:!text-xs px-3 py-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Trained on 70,000+ real matches • every pick locked before kickoff</span>
-                  </div>
+                  </Chip>
                   <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                     Honest football predictions, <span className="text-emerald-600 dark:text-emerald-400">not guesses</span>.
                   </h2>
@@ -284,9 +285,9 @@ export default function Home() {
                       <button
                         key={c.key}
                         onClick={() => setSelectedConfidence(c.key)}
-                        className={`px-2.5 py-1 rounded text-[11px] font-bold border ${
+                        className={`px-2.5 py-1 rounded-chip font-mono text-[11px] font-semibold border ${
                           selectedConfidence === c.key
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/[0.12] dark:text-emerald-500 border-emerald-300 dark:border-emerald-500/30"
                             : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-gray-800"
                         }`}
                       >
