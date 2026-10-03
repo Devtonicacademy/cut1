@@ -2,6 +2,9 @@
 
 import React, { useState } from "react";
 import { Fixture, ValueBetItem } from "@/types";
+import GlassCard from "@/components/ui/GlassCard";
+import Chip from "@/components/ui/Chip";
+import OddsText from "@/components/ui/OddsText";
 import { 
   ChevronDown, ChevronUp, Sparkles, AlertTriangle, TrendingUp, 
   CheckCircle2, Trophy, Shield, Calendar, Clock, BarChart2, Lightbulb, ExternalLink, Check 
@@ -43,17 +46,11 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
   };
 
   return (
-    <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
-      isSelected 
-        ? "bg-emerald-50/70 dark:bg-[#11192e] border-emerald-500 shadow-md ring-1 ring-emerald-500/30"
-        : "bg-white dark:bg-[#0d1322] border-slate-200 dark:border-gray-800 shadow-sm hover:border-slate-300 dark:hover:border-gray-700"
-    }`}>
+    <GlassCard active={isSelected}>
       {/* Top Banner: League & Kickoff Date/Time */}
       <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-gray-900/70 border-b border-slate-200/80 dark:border-gray-800 flex flex-wrap justify-between items-center gap-2 text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider text-[11px] bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20">
-            {fixture.league}
-          </span>
+          <Chip tone="success" className="uppercase tracking-wider">{fixture.league}</Chip>
           <span className="text-[11px] text-slate-500 dark:text-gray-400 hidden xs:inline">
             • {fixture.venue.split(",")[0]}
           </span>
@@ -61,9 +58,10 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
 
         {/* Date and Time Badge */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-gray-700 shadow-2xs">
-          <span className="inline-flex items-center gap-1 font-extrabold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded text-[10px] border border-emerald-500/20">
-            🟢 UPCOMING
-          </span>
+          <Chip tone="success" pill>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            UPCOMING
+          </Chip>
           <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-gray-200">
             <Calendar className="w-3.5 h-3.5 text-emerald-500" />
             <span>{displayDate}</span>
@@ -80,7 +78,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
       <div className="p-3.5 sm:p-4">
         {/* Statistically Projected Winner Highlight */}
         {p.likely_winner_team && (
-          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-emerald-50 via-slate-50 to-slate-100 dark:from-emerald-950/50 dark:via-gray-900 dark:to-[#101726] border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
+          <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-emerald-50 via-slate-50 to-slate-100 dark:from-emerald-950/50 dark:via-gray-900 dark:to-[#111827] border border-emerald-500/20 dark:border-emerald-500/30 flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                 <Trophy className="w-3.5 h-3.5" />
@@ -89,15 +87,9 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="text-[10px] text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider">Likely Winner:</span>
                   <span className="font-extrabold text-slate-900 dark:text-white text-xs">{p.likely_winner_team}</span>
-                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
-                    p.likely_winner_confidence?.includes("Banker")
-                      ? "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40"
-                      : p.likely_winner_confidence?.includes("Strong")
-                      ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40"
-                      : "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40"
-                  }`}>
+                  <Chip tone={p.likely_winner_confidence?.includes("Banker") ? "success" : p.likely_winner_confidence?.includes("Strong") ? "caution" : "info"}>
                     {((p.likely_winner_prob || 0) * 100).toFixed(0)}% Win Prob • {p.likely_winner_confidence}
-                  </span>
+                  </Chip>
                 </div>
                 {p.recommended_safe_pick && (
                   <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
@@ -174,9 +166,9 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
         {/* AI Calibrated Probability Bar */}
         <div className="space-y-1 mb-3">
           <div className="flex justify-between text-[11px] font-semibold">
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">1: {(p.prob_home_win * 100).toFixed(0)}%</span>
-            <span className="text-slate-500 dark:text-gray-400">X: {(p.prob_draw * 100).toFixed(0)}%</span>
-            <span className="text-blue-600 dark:text-blue-400 font-bold">2: {(p.prob_away_win * 100).toFixed(0)}%</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">1: <OddsText value={p.prob_home_win * 100} digits={0} suffix="%" /></span>
+            <span className="text-slate-500 dark:text-gray-400">X: <OddsText value={p.prob_draw * 100} digits={0} suffix="%" /></span>
+            <span className="text-blue-600 dark:text-blue-400 font-bold">2: <OddsText value={p.prob_away_win * 100} digits={0} suffix="%" /></span>
           </div>
           <div className="h-2 w-full bg-slate-100 dark:bg-gray-800 rounded-full overflow-hidden flex border border-slate-200 dark:border-transparent">
             <div style={{ width: `${p.prob_home_win * 100}%` }} className="bg-emerald-500" />
@@ -196,7 +188,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
               {p.key_factors.map((factor, i) => <li key={i}>{factor}</li>)}
             </ul>
             {p.prediction_source && (
-              <p className="text-[10px] text-slate-400 dark:text-gray-500 mt-1.5">{p.prediction_source}</p>
+              <p className="text-[10px] text-slate-500 dark:text-gray-400 mt-1.5">{p.prediction_source}</p>
             )}
           </div>
         )}
@@ -206,12 +198,12 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
           <div className="bg-emerald-50/90 dark:bg-emerald-950/40 border border-emerald-500/30 dark:border-emerald-500/40 rounded-lg p-2.5 mb-3 flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-2">
               <span className="bg-amber-400 dark:bg-gold-500 text-slate-900 dark:text-black text-[10px] font-black px-1.5 py-0.5 rounded uppercase">
-                +{topValueBet.expected_value_pct.toFixed(1)}% EV
+                <OddsText value={topValueBet.expected_value_pct} digits={1} prefix="+" suffix="% EV" />
               </span>
               <div>
                 <span className="font-extrabold text-xs text-slate-900 dark:text-white">{topValueBet.market_name}</span>
                 <span className="text-[11px] text-slate-600 dark:text-gray-400 ml-1.5">
-                  best on <b className="text-emerald-700 dark:text-emerald-300">{topValueBet.bookmaker}</b> ({topValueBet.market_odds.toFixed(2)})
+                  best on <b className="text-emerald-700 dark:text-emerald-300">{topValueBet.bookmaker}</b> (<OddsText value={topValueBet.market_odds} />)
                 </span>
               </div>
             </div>
@@ -246,7 +238,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
               <div key={book.bookmaker} className="flex justify-between items-center">
                 <span className="text-slate-500 dark:text-gray-400 font-medium">{book.bookmaker}:</span>
                 <span className="font-mono text-slate-900 dark:text-white">
-                  1: <b className="text-emerald-600 dark:text-emerald-400">{book.home_win.toFixed(2)}</b> | X: <b>{book.draw.toFixed(2)}</b> | 2: <b>{book.away_win.toFixed(2)}</b>
+                  1: <b className="text-emerald-600 dark:text-emerald-400"><OddsText value={book.home_win} /></b> | X: <b><OddsText value={book.draw} /></b> | 2: <b><OddsText value={book.away_win} /></b>
                 </span>
               </div>
             ))
@@ -254,7 +246,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             <p className="text-slate-500 dark:text-gray-400">No bookmaker odds published yet for this match.</p>
           )}
           <div className="flex items-center gap-1.5 pt-1 border-t border-slate-200 dark:border-gray-800/60">
-            <span className="text-[10px] text-slate-400 dark:text-gray-500 mr-auto">
+            <span className="text-[10px] text-slate-500 dark:text-gray-400 mr-auto">
               {copiedBook ? `Match name copied: paste it into ${copiedBook} search` : "Check live odds:"}
             </span>
             {[
@@ -341,7 +333,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                     >
                       <div className="text-slate-600 dark:text-gray-400 truncate max-w-[130px] sm:max-w-none">
                         <span className="font-semibold text-slate-800 dark:text-gray-200">{m.date}</span>
-                        <span className="text-[10px] text-slate-400 dark:text-gray-500 ml-1 hidden xs:inline">({m.competition})</span>
+                        <span className="text-[10px] text-slate-500 dark:text-gray-400 ml-1 hidden xs:inline">({m.competition})</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -378,7 +370,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-gray-800/80 space-y-2.5 text-xs text-slate-700 dark:text-gray-300 animate-in fade-in duration-150">
             {/* Statistical Model Verdict */}
             {p.statistical_verdict && (
-              <div className="bg-emerald-50/80 dark:bg-[#121f2d] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
+              <div className="bg-emerald-50/80 dark:bg-[#1E293B] p-3 rounded-lg border border-emerald-500/20 dark:border-emerald-500/30">
                 <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 font-bold mb-1">
                   <Trophy className="w-3.5 h-3.5" />
                   <span>Model verdict</span>
@@ -390,7 +382,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
             )}
 
             {/* Gemini Tactical Rationale */}
-            <div className="bg-slate-50 dark:bg-[#12192a] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
+            <div className="bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-700/60">
               <div className="flex items-center gap-1.5 text-amber-600 dark:text-gold-400 font-bold mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Match analysis</span>
@@ -419,7 +411,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
                       <span className="font-medium text-slate-900 dark:text-white">{vb.market_name}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold font-mono">
-                          +{vb.expected_value_pct.toFixed(1)}% EV ({vb.market_odds.toFixed(2)})
+                          <OddsText value={vb.expected_value_pct} digits={1} prefix="+" suffix="% EV" /> (<OddsText value={vb.market_odds} />)
                         </span>
                         <button
                           onClick={() => onSelectBet(vb, fixture)}
@@ -436,6 +428,6 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
           </div>
         )}
       </div>
-    </div>
+    </GlassCard>
   );
 }

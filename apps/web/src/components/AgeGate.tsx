@@ -34,8 +34,8 @@ export default function AgeGate({ children }: { children: React.ReactNode }) {
   if (status === "checking") return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-[#090d16]">
-      <div className="max-w-sm w-full bg-white dark:bg-[#0d1322] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm text-center space-y-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50 dark:bg-[#0B0F19]">
+      <div className="max-w-sm w-full bg-white dark:bg-[#111827] border border-slate-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm text-center space-y-4">
         <ShieldAlert className="w-10 h-10 mx-auto text-amber-500" />
         {status === "ask" ? (
           <>
@@ -47,13 +47,13 @@ export default function AgeGate({ children }: { children: React.ReactNode }) {
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setStatus("under18")}
-                className="py-2 rounded-xl text-sm font-bold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700"
+                className="py-2 rounded-lg text-sm font-bold bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-gray-700"
               >
                 No
               </button>
               <button
                 onClick={confirm}
-                className="py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 Yes, I&apos;m 18+
               </button>

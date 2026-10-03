@@ -1,5 +1,6 @@
 "use client";
 
+import Chip from "@/components/ui/Chip";
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
@@ -36,6 +37,7 @@ export default function Home() {
   const [selectedLeague, setSelectedLeague] = useState<string>("All");
   const [selectedConfidence, setSelectedConfidence] = useState<string>("All");
   const [accaLoading, setAccaLoading] = useState<boolean>(false);
+
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
 
   const [bankerData, setBankerData] = useState<AccumulatorResponse | null>(null);
@@ -168,9 +170,9 @@ export default function Home() {
 
   return (
     <AgeGate>
-      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#090d16] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0">
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0">
         {toastMessage && (
-          <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+          <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
             <Sparkles className="w-4 h-4 fill-current" />
             <span>{toastMessage}</span>
           </div>
@@ -194,12 +196,12 @@ export default function Home() {
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
               {/* Hero */}
-              <div className="bg-white dark:bg-gradient-to-r dark:from-[#121c33] dark:via-[#0d1424] dark:to-[#0a0f1d] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
+              <div className="bg-white dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#111827] dark:to-[#0B0F19] border border-slate-200 dark:border-emerald-500/30 rounded-2xl p-4 sm:p-6 shadow-sm">
                 <div className="max-w-3xl">
-                  <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30 text-[11px] sm:text-xs font-bold px-3 py-1 rounded-full mb-2.5">
+                  <Chip tone="success" pill className="mb-2.5 !text-[11px] sm:!text-xs px-3 py-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>Trained on 70,000+ real matches • every pick locked before kickoff</span>
-                  </div>
+                  </Chip>
                   <h2 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                     Honest football predictions, <span className="text-emerald-600 dark:text-emerald-400">not guesses</span>.
                   </h2>
@@ -212,7 +214,7 @@ export default function Home() {
                     <button
                       onClick={loadDailyBanker}
                       disabled={accaLoading}
-                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-black font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5"
+                      className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white dark:text-black font-black text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
                     >
                       <Zap className="w-3.5 h-3.5 fill-current" />
                       <span>2-Odds Slip</span>
@@ -222,7 +224,7 @@ export default function Home() {
                         key={n}
                         onClick={() => buildMultiGameAcca(n)}
                         disabled={accaLoading}
-                        className="bg-white hover:bg-slate-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white font-bold text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-gray-700 flex items-center gap-1.5"
+                        className="bg-white hover:bg-slate-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-slate-800 dark:text-white font-bold text-xs px-3 py-2 rounded-lg border border-slate-200 dark:border-gray-700 flex items-center gap-1.5"
                       >
                         <Layers className="w-3.5 h-3.5" />
                         <span>{n}-Game Slip</span>
@@ -240,7 +242,7 @@ export default function Home() {
               </div>
 
               {/* Data status */}
-              <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
+              <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
                 <span>
                   <b>{fixtures.length}</b> upcoming matches in {leagues.length - 1} leagues • predictions refresh every 3 hours
                 </span>
@@ -274,21 +276,22 @@ export default function Home() {
 
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-gray-800/60 pt-2 flex-wrap gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 dark:text-gray-500">Confidence:</span>
+                    <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-gray-400">Confidence:</span>
                     {[
                       { key: "All", label: "All matches" },
-                      { key: "Bankers", label: "🟢 70%+" },
-                      { key: "Favorites", label: "🟡 58%+" },
+                      { key: "Bankers", label: "70%+", dot: "bg-emerald-500" },
+                      { key: "Favorites", label: "58%+", dot: "bg-amber-500" },
                     ].map((c) => (
                       <button
                         key={c.key}
                         onClick={() => setSelectedConfidence(c.key)}
-                        className={`px-2.5 py-1 rounded text-[11px] font-bold border ${
+                        className={`px-2.5 py-1 rounded-chip font-mono text-[11px] font-semibold border ${
                           selectedConfidence === c.key
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/[0.12] dark:text-emerald-500 border-emerald-300 dark:border-emerald-500/30"
                             : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-gray-800"
                         }`}
                       >
+                        {"dot" in c && <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${c.dot}`} />}
                         {c.label}
                       </button>
                     ))}
@@ -348,7 +351,7 @@ export default function Home() {
           showKelly={showKelly}
         />
 
-        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#070b13] py-6 px-4 text-xs text-slate-500 dark:text-gray-500 text-center">
+        <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#0B0F19] py-6 px-4 text-xs text-slate-500 dark:text-gray-400 text-center">
           <div className="max-w-3xl mx-auto space-y-2">
             <p className="text-slate-600 dark:text-gray-400 font-semibold">
               18+ only. Predictions are probabilities, not guarantees. Never bet more than you can afford to lose.
@@ -364,7 +367,7 @@ export default function Home() {
               </a>{" "}
               for free, confidential support.
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-gray-600">
+            <p className="text-[11px] text-slate-500 dark:text-gray-400">
               Data: football-data.co.uk and football-data.org. © 2026 LivelyBorg Technologies.
             </p>
           </div>
