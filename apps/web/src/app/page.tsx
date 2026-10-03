@@ -1,6 +1,8 @@
 "use client";
 
 import Chip from "@/components/ui/Chip";
+import FilterSidebar from "@/components/FilterSidebar";
+import { useFixtureFilters } from "@/lib/fixtureFilters";
 import React, { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import MatchCard from "@/components/MatchCard";
@@ -26,6 +28,8 @@ async function getJson<T>(path: string, init?: RequestInit): Promise<T | null> {
   }
 }
 
+const kickoffOf = (f: Fixture) => f.kickoff_timestamp;
+
 export default function Home() {
   const [bankroll, setBankroll] = useState<number>(10000);
   const [dataSaver, setDataSaver] = useState<boolean>(false);
@@ -34,7 +38,6 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<boolean>(false);
   const [selectedBets, setSelectedBets] = useState<ValueBetItem[]>([]);
-  const [selectedLeague, setSelectedLeague] = useState<string>("All");
   const [selectedConfidence, setSelectedConfidence] = useState<string>("All");
   const [accaLoading, setAccaLoading] = useState<boolean>(false);
 
@@ -154,14 +157,11 @@ export default function Home() {
   // Value bets only exist when they passed the backtest; otherwise the stake calculator is hidden
   const showKelly = selectedBets.length > 0 || fixtures.some((f) => (f.prediction?.value_bets.length ?? 0) > 0);
 
-  const leagueCounts = fixtures.reduce<Record<string, number>>((acc, f) => {
-    acc[f.league] = (acc[f.league] || 0) + 1;
-    return acc;
-  }, {});
-  const leagues = ["All", ...Object.keys(leagueCounts).sort((a, b) => leagueCounts[b] - leagueCounts[a])];
+  const { filters, visible, leagueCounts, activeCount, toggleLeague, setDatePreset, setCustomDate, reset } =
+    useFixtureFilters(fixtures, kickoffOf);
 
-  const filteredFixtures = fixtures.filter((f) => {
-    if (selectedLeague !== "All" && f.league !== selectedLeague) return false;
+  // League and date come from the sidebar; confidence is a quick filter on top of that.
+  const filteredFixtures = visible.filter((f) => {
     const prob = f.prediction?.likely_winner_prob || 0;
     if (selectedConfidence === "Bankers") return prob >= 0.7;
     if (selectedConfidence === "Favorites") return prob >= 0.58;
@@ -244,7 +244,7 @@ export default function Home() {
               {/* Data status */}
               <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
                 <span>
-                  <b>{fixtures.length}</b> upcoming matches in {leagues.length - 1} leagues • predictions refresh every 3 hours
+                  <b>{fixtures.length}</b> upcoming matches in {leagueCounts.length} leagues • predictions refresh every 3 hours
                 </span>
                 <button
                   onClick={fetchFixtures}
@@ -256,24 +256,19 @@ export default function Home() {
                 </button>
               </div>
 
+              <div className="flex flex-col items-start gap-4 lg:flex-row lg:gap-6">
+              <FilterSidebar
+                leagues={leagueCounts}
+                filters={filters}
+                activeCount={activeCount}
+                onToggleLeague={toggleLeague}
+                onDatePreset={setDatePreset}
+                onCustomDate={setCustomDate}
+                onReset={reset}
+              />
+              <div className="w-full min-w-0 flex-1 space-y-4 sm:space-y-6">
               {/* Filters */}
               <div className="space-y-2">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
-                  {leagues.map((lg) => (
-                    <button
-                      key={lg}
-                      onClick={() => setSelectedLeague(lg)}
-                      className={`px-3 py-1.5 rounded-lg font-bold whitespace-nowrap text-xs ${
-                        selectedLeague === lg
-                          ? "bg-emerald-600 text-white dark:bg-emerald-500 dark:text-black shadow-sm"
-                          : "bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-800 text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white"
-                      }`}
-                    >
-                      {lg === "All" ? "All" : `${lg} (${leagueCounts[lg]})`}
-                    </button>
-                  ))}
-                </div>
-
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-gray-800/60 pt-2 flex-wrap gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[11px] font-bold uppercase text-slate-500 dark:text-gray-400">Confidence:</span>
@@ -311,7 +306,12 @@ export default function Home() {
                   Couldn&apos;t reach the prediction server. Please try again shortly.
                 </p>
               ) : filteredFixtures.length === 0 ? (
-                <p className="text-center py-16 text-sm text-slate-500 dark:text-gray-400">No matches for these filters.</p>
+                <p className="text-center py-16 text-sm text-slate-500 dark:text-gray-400">
+                  No matches for these filters.{" "}
+                  <button onClick={() => { reset(); setSelectedConfidence("All"); }} className="font-bold text-emerald-500 hover:underline">
+                    Clear filters
+                  </button>
+                </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                   {filteredFixtures.map((fixture) => (
@@ -326,6 +326,8 @@ export default function Home() {
                   ))}
                 </div>
               )}
+              </div>
+              </div>
             </div>
           )}
 
