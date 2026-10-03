@@ -279,8 +279,8 @@ export default function Home() {
                     <span className="text-[11px] font-bold uppercase text-slate-400 dark:text-gray-500">Confidence:</span>
                     {[
                       { key: "All", label: "All matches" },
-                      { key: "Bankers", label: "🟢 70%+" },
-                      { key: "Favorites", label: "🟡 58%+" },
+                      { key: "Bankers", label: "70%+", dot: "bg-emerald-500" },
+                      { key: "Favorites", label: "58%+", dot: "bg-amber-500" },
                     ].map((c) => (
                       <button
                         key={c.key}
@@ -291,6 +291,7 @@ export default function Home() {
                             : "bg-white dark:bg-gray-900 text-slate-600 dark:text-gray-400 border-slate-200 dark:border-gray-800"
                         }`}
                       >
+                        {"dot" in c && <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${c.dot}`} />}
                         {c.label}
                       </button>
                     ))}

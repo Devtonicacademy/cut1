@@ -58,7 +58,10 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
 
         {/* Date and Time Badge */}
         <div className="flex items-center gap-2 text-[11px] font-medium text-slate-600 dark:text-gray-300 bg-white dark:bg-gray-800/80 px-2.5 py-1 rounded-md border border-slate-200 dark:border-gray-700 shadow-2xs">
-          <Chip tone="success" pill>🟢 UPCOMING</Chip>
+          <Chip tone="success" pill>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            UPCOMING
+          </Chip>
           <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-gray-200">
             <Calendar className="w-3.5 h-3.5 text-emerald-500" />
             <span>{displayDate}</span>

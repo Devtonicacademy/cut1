@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Database, Layers, Sun, Moon, Settings } from "lucide-react";
+import { Database, Layers, Sun, Moon, Settings, Trophy, Wallet, ShieldCheck, BarChart3 } from "lucide-react";
 
 interface HeaderProps {
   bankroll: number;
@@ -124,13 +124,14 @@ export default function Header({
         <div className="max-w-6xl mx-auto flex items-center gap-1 overflow-x-auto py-1 text-xs no-scrollbar">
           <button
             onClick={() => onSelectTab("fixtures")}
-            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               activeTab === "fixtures"
                 ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
                 : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
             }`}
           >
-            ⚽ Matches & AI Picks
+            <Trophy className="w-3.5 h-3.5" />
+            <span>Matches & AI Picks</span>
           </button>
 
           {onOpenAccaBuilder && (
@@ -139,43 +140,46 @@ export default function Header({
               className="px-3 py-1.5 rounded-md font-bold whitespace-nowrap text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/40 flex items-center gap-1"
             >
               <Layers className="w-3.5 h-3.5" />
-              <span>🎯 Slip Builder</span>
+              <span>Slip Builder</span>
             </button>
           )}
 
           {showKelly && (
             <button
               onClick={() => onSelectTab("bankroll")}
-              className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                 activeTab === "bankroll"
                   ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
                   : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
               }`}
             >
-              💼 Stake Calculator
+              <Wallet className="w-3.5 h-3.5" />
+              <span>Stake Calculator</span>
             </button>
           )}
 
           <button
             onClick={() => onSelectTab("tracker")}
-            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               activeTab === "tracker"
                 ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
                 : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
             }`}
           >
-            🛡️ Verified Track Record
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Verified Track Record</span>
           </button>
 
           <button
             onClick={() => onSelectTab("accuracy")}
-            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors ${
+            className={`px-3 py-1.5 rounded-md font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
               activeTab === "accuracy"
                 ? "bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-400 dark:border dark:border-emerald-500/40 shadow-xs"
                 : "text-slate-600 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white"
             }`}
           >
-            📊 Accuracy
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>Accuracy</span>
           </button>
         </div>
       </div>
