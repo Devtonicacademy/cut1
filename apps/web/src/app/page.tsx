@@ -3,6 +3,9 @@
 import Chip from "@/components/ui/Chip";
 import FilterSidebar from "@/components/FilterSidebar";
 import HeroCarousel, { HeroSlide } from "@/components/HeroCarousel";
+import Reveal, { staggerDelay } from "@/components/motion/Reveal";
+import ScrollProgress from "@/components/motion/ScrollProgress";
+import { LazyMotion, MotionConfig, domAnimation, m } from "framer-motion";
 import MobileQuickSettings from "@/components/MobileQuickSettings";
 import { useFixtureFilters } from "@/lib/fixtureFilters";
 import React, { useState, useEffect } from "react";
@@ -44,6 +47,7 @@ export default function Home() {
   const [accaLoading, setAccaLoading] = useState<boolean>(false);
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   const [bankerData, setBankerData] = useState<AccumulatorResponse | null>(null);
   const [showBankerModal, setShowBankerModal] = useState<boolean>(false);
@@ -64,6 +68,26 @@ export default function Home() {
     setIsDarkMode(isDark);
     document.documentElement.classList.toggle("dark", isDark);
   }, []);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("livelyborg_sidebar_collapsed") === "1") setSidebarCollapsed(true);
+    } catch {
+      // storage blocked: the sidebar starts expanded
+    }
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("livelyborg_sidebar_collapsed", next ? "1" : "0");
+      } catch {
+        // storage blocked
+      }
+      return next;
+    });
+  };
 
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
@@ -181,6 +205,7 @@ export default function Home() {
   const heroSlides: HeroSlide[] = [
     {
       id: "verify",
+      image: "https://unsplash.com/photos/0CDVSPYVsgU/download?force=true&w=1920",
       heading: "Predictions you can verify",
       description: "Every pick is locked before kickoff and logged on a public track record, so you can check the model's results yourself.",
       cta: "See the track record",
@@ -190,6 +215,7 @@ export default function Home() {
     },
     {
       id: "probabilities",
+      image: "https://unsplash.com/photos/autxSXluVvc/download?force=true&w=1920",
       heading: "Probabilities, not hunches",
       description: "A model trained on 70,000+ real matches turns form, goals and head-to-head into win, draw and loss chances.",
       cta: "How accurate are we?",
@@ -199,6 +225,7 @@ export default function Home() {
     },
     {
       id: "value",
+      image: "https://unsplash.com/photos/E3t3uruO_nY/download?force=true&w=1920",
       heading: "Find the value, not just the winner",
       description: "The AI compares its own odds with the bookmakers' to flag bets worth backing, and sizes your stake to your bankroll.",
       cta: "Today's 2-Odds Slip",
@@ -208,6 +235,7 @@ export default function Home() {
     },
     {
       id: "slip",
+      image: "https://unsplash.com/photos/gq7DkfsEHVU/download?force=true&w=1920",
       heading: "Build a smarter slip",
       description: "Let the model combine its strongest picks into a ready-to-bet accumulator, with the risk spelled out.",
       cta: "Build a 5-game slip",
@@ -217,9 +245,20 @@ export default function Home() {
     },
   ];
 
+  // Space the fixed sidebar takes on lg+. Animated as a CSS variable so the breakpoint stays in CSS.
+  const sidebarOffset = activeTab === "fixtures" && !sidebarCollapsed ? "25vw" : "0vw";
+
   return (
+    <LazyMotion features={domAnimation}>
+    <MotionConfig reducedMotion="user">
     <AgeGate>
-      <div className={`min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0 ${activeTab === "fixtures" ? "lg:pl-[25%]" : ""}`}>
+      <ScrollProgress />
+      <m.div
+        initial={false}
+        animate={{ "--sidebar-offset": sidebarOffset }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-gray-100 flex flex-col transition-colors duration-150 pb-20 md:pb-0 lg:pl-[var(--sidebar-offset,25vw)]"
+      >
         {toastMessage && (
           <div className="fixed bottom-20 md:bottom-4 right-4 z-50 bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black font-extrabold text-xs px-4 py-2.5 rounded-lg shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
             <Sparkles className="w-4 h-4 fill-current" />
@@ -252,8 +291,11 @@ export default function Home() {
           />
           {activeTab === "fixtures" && (
             <div className="space-y-4 sm:space-y-6">
-              <HeroCarousel slides={heroSlides} />
+              <Reveal>
+                <HeroCarousel slides={heroSlides} />
+              </Reveal>
 
+              <Reveal delay={0.05}>
               {/* Data status */}
               <div className="bg-slate-100 dark:bg-gray-900/50 border border-slate-200 dark:border-gray-800 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2.5 text-xs text-slate-700 dark:text-gray-300">
                 <span>
@@ -268,6 +310,7 @@ export default function Home() {
                   <span>Refresh</span>
                 </button>
               </div>
+              </Reveal>
 
               <FilterSidebar
                 leagues={leagueCounts}
@@ -277,8 +320,11 @@ export default function Home() {
                 onDatePreset={setDatePreset}
                 onCustomDate={setCustomDate}
                 onReset={reset}
+                collapsed={sidebarCollapsed}
+                onToggleCollapsed={toggleSidebar}
               />
 
+              <Reveal delay={0.1}>
               {/* Filters */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs text-slate-500 dark:text-gray-400 border-t border-slate-200 dark:border-gray-800/60 pt-2 flex-wrap gap-2">
@@ -306,6 +352,7 @@ export default function Home() {
                   <span className="text-[11px]">Showing <b>{filteredFixtures.length}</b> of {fixtures.length}</span>
                 </div>
               </div>
+              </Reveal>
 
               {/* Match cards */}
               {loading && fixtures.length === 0 ? (
@@ -326,16 +373,21 @@ export default function Home() {
                 </p>
               ) : (
                 <div className="grid grid-flow-dense grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredFixtures.map((fixture) => (
-                    <MatchCard
+                  {filteredFixtures.map((fixture, i) => (
+                    <Reveal
                       key={fixture.id}
-                      fixture={fixture}
-                      onSelectBet={handleSelectBet}
-                      featured={fixture.id === featuredId}
-                      isSelected={selectedBets.some((b) =>
-                        fixture.prediction?.value_bets.some((vb) => vb.market_name === b.market_name)
-                      )}
-                    />
+                      delay={staggerDelay(i % 3)}
+                      className={fixture.id === featuredId ? "lg:col-span-2" : undefined}
+                    >
+                      <MatchCard
+                        fixture={fixture}
+                        onSelectBet={handleSelectBet}
+                        featured={fixture.id === featuredId}
+                        isSelected={selectedBets.some((b) =>
+                          fixture.prediction?.value_bets.some((vb) => vb.market_name === b.market_name)
+                        )}
+                      />
+                    </Reveal>
                   ))}
                 </div>
               )}
@@ -343,17 +395,27 @@ export default function Home() {
           )}
 
           {activeTab === "bankroll" && showKelly && (
+            <Reveal>
             <KellyCalculator
               bankroll={bankroll}
               onBankrollChange={setBankroll}
               selectedBets={selectedBets}
               onRemoveBet={handleRemoveBet}
             />
+            </Reveal>
           )}
 
-          {activeTab === "tracker" && <TrackRecordView stats={trackStats} verification={verification} />}
+          {activeTab === "tracker" && (
+            <Reveal>
+              <TrackRecordView stats={trackStats} verification={verification} />
+            </Reveal>
+          )}
 
-          {activeTab === "accuracy" && <AccuracyView report={modelReport} />}
+          {activeTab === "accuracy" && (
+            <Reveal>
+              <AccuracyView report={modelReport} />
+            </Reveal>
+          )}
         </main>
 
         <MobileBottomNav
@@ -364,6 +426,7 @@ export default function Home() {
           showKelly={showKelly}
         />
 
+        <Reveal y={16}>
         <footer className="border-t border-slate-200 dark:border-gray-800/80 bg-slate-100/60 dark:bg-[#0B0F19] py-6 px-4 text-xs text-slate-500 dark:text-gray-400 text-center">
           <div className="max-w-3xl mx-auto space-y-2">
             <p className="text-slate-600 dark:text-gray-400 font-semibold">
@@ -383,8 +446,16 @@ export default function Home() {
             <p className="text-[11px] text-slate-500 dark:text-gray-400">
               Data: football-data.co.uk and football-data.org. © 2026 LivelyBorg Technologies.
             </p>
+            <p className="text-[11px] text-slate-500 dark:text-gray-400">
+              Photos: Sijmen van Hooff, Aleksandr Galichkin, Maryam Tello and Zaki on{" "}
+              <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="underline">
+                Unsplash
+              </a>
+              .
+            </p>
           </div>
         </footer>
+        </Reveal>
 
         {showBankerModal && (
           <SmartAccaModal
@@ -401,7 +472,9 @@ export default function Home() {
         )}
 
         {showShareModal && <WhatsAppSlipGenerator data={bankerData} onClose={() => setShowShareModal(false)} />}
-      </div>
+      </m.div>
     </AgeGate>
+    </MotionConfig>
+    </LazyMotion>
   );
 }

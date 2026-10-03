@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useId, useState } from "react";
-import { CalendarDays, ChevronDown, Filter, X } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, Filter, X } from "lucide-react";
+import { m } from "framer-motion";
 import { DatePreset, FixtureFilters } from "@/lib/fixtureFilters";
 
 interface FilterSidebarProps {
@@ -14,6 +15,9 @@ interface FilterSidebarProps {
   onReset: () => void;
   /** "fixed" pins the panel to the left edge on lg+ (a quarter of the screen); "inline" keeps it in the flow. */
   layout?: "fixed" | "inline";
+  /** Fixed layout only: hide the panel to give the content the full width. */
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }
 
 const DATE_OPTIONS: { value: DatePreset; label: string }[] = [
@@ -35,6 +39,8 @@ export default function FilterSidebar({
   onCustomDate,
   onReset,
   layout = "fixed",
+  collapsed = false,
+  onToggleCollapsed,
 }: FilterSidebarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [leaguesOpen, setLeaguesOpen] = useState(true);
@@ -159,17 +165,52 @@ export default function FilterSidebar({
         )}
       </button>
 
-      {/* Desktop: sticky column */}
-      <aside
-        aria-label="Fixture filters"
-        className={`hidden border-slate-200 bg-white shadow-sm dark:border-glass dark:bg-surface-glass dark:shadow-none dark:backdrop-blur-glass lg:block ${
-          layout === "inline"
-            ? "sticky top-4 self-start rounded-panel border p-4"
-            : "fixed inset-y-0 left-0 z-30 w-1/4 overflow-y-auto border-r p-6"
-        }`}
-      >
-        {renderPanel("side")}
-      </aside>
+      {/* Desktop */}
+      {layout === "inline" ? (
+        <aside
+          aria-label="Fixture filters"
+          className="sticky top-4 hidden self-start rounded-panel border border-slate-200 bg-white p-4 shadow-sm dark:border-glass dark:bg-surface-glass dark:shadow-none dark:backdrop-blur-glass lg:block"
+        >
+          {renderPanel("side")}
+        </aside>
+      ) : (
+        <m.div
+          id={`${uid}-sidebar`}
+          initial={false}
+          // Slides with a GPU transform. While collapsed the panel is `inert` and aria-hidden, so its controls leave the tab order.
+          animate={{ x: collapsed ? "-100%" : 0 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-y-0 left-0 z-30 hidden w-[25vw] lg:block"
+        >
+          <aside
+            aria-label="Fixture filters"
+            aria-hidden={collapsed}
+            inert={collapsed}
+            className="h-full overflow-y-auto border-r border-slate-200 bg-white p-6 shadow-sm dark:border-glass dark:bg-surface-glass dark:shadow-none dark:backdrop-blur-glass"
+          >
+            {renderPanel("side")}
+          </aside>
+
+          {/* Handle on the sidebar's right edge: it rides the edge, so it stays on screen when the panel slides away. */}
+          <button
+            onClick={onToggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-controls={`${uid}-sidebar`}
+            aria-label={collapsed ? "Expand filters" : "Collapse filters"}
+            title={collapsed ? "Expand filters" : "Collapse filters"}
+            className="absolute left-full top-1/2 flex h-14 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:text-emerald-600 dark:border-glass dark:bg-surface-modal dark:text-gray-300 dark:hover:text-emerald-400"
+          >
+            <m.span animate={{ rotate: collapsed ? 180 : 0 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="flex">
+              <ChevronLeft className="h-4 w-4" />
+            </m.span>
+            {collapsed && activeCount > 0 && (
+              <span className="absolute -top-2 left-0.5 rounded-full bg-emerald-500 px-1 font-mono text-[9px] font-semibold leading-4 text-black">
+                {activeCount}
+              </span>
+            )}
+          </button>
+        </m.div>
+      )}
 
       {/* Mobile / tablet: drawer */}
       {drawerOpen && (

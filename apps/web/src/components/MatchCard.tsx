@@ -46,7 +46,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected, featured =
 
   return (
     <>
-      <GlassCard active={isSelected} className={`flex flex-col ${featured ? "lg:col-span-2" : ""}`}>
+      <GlassCard active={isSelected} className="flex h-full flex-col">
         <div className={`flex flex-1 flex-col gap-3 ${featured ? "p-5" : "p-4"}`}>
           <div className="flex items-center justify-between gap-2">
             <Chip tone="success" className="max-w-[55%] truncate uppercase tracking-wider">
