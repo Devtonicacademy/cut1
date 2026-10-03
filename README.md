@@ -30,6 +30,7 @@ tests/         pytest suite on a synthetic database (no network)
 ## Configuration (`.env`)
 | Variable | Purpose |
 |---|---|
+| `ODDS_API_KEY` | The Odds API key: real market odds for fixtures football-data.co.uk has not priced yet (optional; free plan 500 credits/month) |
 | `FOOTBALL_DATA_KEY` | football-data.org key: fixtures up to 14 days ahead (optional) |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | plain-English match explanations (optional; a template is used otherwise) |
 | `ADMIN_TOKEN` | enables `POST /api/v1/jobs/run` and `/fixtures/refresh` (send it as the `X-Admin-Token` header); unset = disabled |

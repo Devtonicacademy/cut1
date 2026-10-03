@@ -20,6 +20,7 @@ MATCH_COLUMNS = (
 )
 # home_div / away_div: each club's domestic division, filled for cross-country competitions (e.g. "CL")
 FIXTURE_COLUMNS = ["div", "match_date", "kickoff_utc", "home_team", "away_team", "source", "home_div", "away_div"] + ODDS_COLUMNS
+OVERLAY_COLUMNS = ["avg_h", "avg_d", "avg_a", "max_h", "max_d", "max_a"]
 PRIMARY_FIXTURE_SOURCE = "football-data.co.uk"  # has odds, and wins when two sources list the same match
 
 _SCHEMA = f"""
@@ -51,6 +52,20 @@ CREATE TABLE IF NOT EXISTS fixtures (
     away_div TEXT,
     {", ".join(f"{c} REAL" for c in ODDS_COLUMNS)},
     PRIMARY KEY (div, match_date, home_team, away_team)
+);
+
+-- Market odds from a second source (The Odds API), kept apart from `fixtures` because each fixture
+-- source replaces its own rows on every refresh. Merged into fixtures that have no odds of their own.
+CREATE TABLE IF NOT EXISTS odds_overlay (
+    div TEXT NOT NULL,
+    home_team TEXT NOT NULL,
+    away_team TEXT NOT NULL,
+    kickoff_utc TEXT NOT NULL,
+    avg_h REAL, avg_d REAL, avg_a REAL,
+    max_h REAL, max_d REAL, max_a REAL,
+    bookmakers INTEGER NOT NULL,
+    fetched_at TEXT NOT NULL,
+    PRIMARY KEY (div, home_team, away_team)
 );
 
 CREATE TABLE IF NOT EXISTS national_matches (
@@ -197,10 +212,33 @@ def load_matches_since(conn: sqlite3.Connection, since_date: str) -> List[sqlite
     ).fetchall()
 
 
-def load_fixtures_after(conn: sqlite3.Connection, after_utc_iso: str) -> List[sqlite3.Row]:
-    return conn.execute(
+def load_fixtures_after(conn: sqlite3.Connection, after_utc_iso: str) -> List[Dict]:
+    rows = [dict(r) for r in conn.execute(
         "SELECT * FROM fixtures WHERE kickoff_utc > ? ORDER BY kickoff_utc, div", (after_utc_iso,)
-    ).fetchall()
+    )]
+    overlay = {(r["div"], r["home_team"], r["away_team"]): r for r in conn.execute("SELECT * FROM odds_overlay")}
+    for row in rows:
+        extra = overlay.get((row["div"], row["home_team"], row["away_team"]))
+        if extra and row["avg_h"] is None:  # a fixture's own odds always win
+            for col in OVERLAY_COLUMNS:
+                row[col] = extra[col]
+    return rows
+
+
+def replace_odds_overlay(conn: sqlite3.Connection, rows: Iterable[Dict], divs: Iterable[str], fetched_at: str) -> int:
+    """Replaces the overlay for the given divisions (others keep their last values) and drops stale kickoffs."""
+    divs = list(divs)
+    if divs:
+        conn.execute(f"DELETE FROM odds_overlay WHERE div IN ({', '.join('?' for _ in divs)})", divs)
+    data = [(r["div"], r["home_team"], r["away_team"], r["kickoff_utc"],
+             *(r[c] for c in OVERLAY_COLUMNS), r["bookmakers"], fetched_at) for r in rows]
+    conn.executemany(
+        f"INSERT OR REPLACE INTO odds_overlay (div, home_team, away_team, kickoff_utc, {', '.join(OVERLAY_COLUMNS)}, "
+        "bookmakers, fetched_at) VALUES (?, ?, ?, ?, " + ", ".join("?" for _ in OVERLAY_COLUMNS) + ", ?, ?)",
+        data,
+    )
+    conn.execute("DELETE FROM odds_overlay WHERE kickoff_utc < ?", (fetched_at,))
+    return len(data)
 
 
 def load_head_to_head(conn: sqlite3.Connection, team_a: str, team_b: str, limit: int = 50) -> List[sqlite3.Row]:

@@ -49,6 +49,7 @@ export default function SmartAccaModal({
   };
 
   const oneIn = data.win_probability > 0 ? Math.round(1 / data.win_probability) : null;
+  const isEmpty = data.legs.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in">
@@ -61,7 +62,7 @@ export default function SmartAccaModal({
             </span>
             <div>
               <h3 className="font-black text-sm sm:text-base flex items-center gap-2">
-                <span>{data.ticket_type}</span>
+                <span>{isEmpty ? "Slip Builder" : data.ticket_type}</span>
                 {isLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
               </h3>
               <p className="text-[11px] opacity-80">Built from the model&apos;s most likely outcomes at real market prices</p>
@@ -114,7 +115,19 @@ export default function SmartAccaModal({
             </div>
           </div>
 
+          {isEmpty && (
+            <div className="bg-slate-50 dark:bg-[#1E293B] border border-slate-200 dark:border-gray-800 rounded-lg p-5 text-center space-y-2">
+              <Info className="w-6 h-6 mx-auto text-slate-400 dark:text-gray-500" />
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white">No slip available right now</h4>
+              <p className="text-xs text-slate-600 dark:text-gray-400 leading-relaxed">
+                Slips only use matches that have real market odds, and bookmaker prices usually appear 2-3 days before kickoff.
+                Check back closer to the next matchday. Nothing has been priced yet, so we won&apos;t guess.
+              </p>
+            </div>
+          )}
+
           {/* The honest numbers */}
+          {!isEmpty && <>
           <div className="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-[#1E293B] p-3 rounded-lg border border-slate-200 dark:border-gray-800 text-center">
             <div>
               <span className="text-[10px] text-slate-500 dark:text-gray-400 uppercase font-bold">Total odds</span>
@@ -179,6 +192,7 @@ export default function SmartAccaModal({
           <p className="text-[10px] text-slate-500 dark:text-gray-400">
             Booking codes aren&apos;t available: add each match on your bookmaker&apos;s site. Predictions are probabilities, not guarantees. 18+.
           </p>
+          </>}
         </div>
 
         <div className="p-3.5 bg-slate-50 dark:bg-gray-950 border-t border-slate-200 dark:border-gray-800 flex justify-between items-center gap-2">

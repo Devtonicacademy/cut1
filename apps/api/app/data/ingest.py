@@ -21,6 +21,7 @@ from apps.api.app.data import db
 from apps.api.app.data import football_data_org as fdorg
 from apps.api.app.data import football_data_uk as fduk
 from apps.api.app.data import national
+from apps.api.app.data import the_odds_api
 from apps.api.app.data.leagues import LEAGUES
 
 RAW_CACHE_DIR = db.REPO_ROOT / "data" / "raw"
@@ -29,6 +30,7 @@ FD_ORG_PAUSE_SECONDS = 6.5  # free tier allows 10 requests per minute
 FD_ORG_REFRESH_HOURS = 6
 API_FOOTBALL_REFRESH_HOURS = 6  # 5 requests per refresh, well inside the free 100 a day
 NATIONAL_REFRESH_HOURS = 24
+ODDS_API_MIN_CREDITS_LEFT = 20  # the free plan is 500 credits a month; stop before it runs dry
 USER_AGENT = "LivelyBorg/0.1 (football prediction research)"
 
 
@@ -202,6 +204,54 @@ def ingest_api_football_fixtures(days_ahead: int = 14) -> Dict:
     return {"fixtures_added": count, "unmatched_teams": unmatched, "errors": errors}
 
 
+def ingest_odds_api(window_days: Optional[int] = None) -> Dict:
+    """
+    Market odds for upcoming fixtures that have none (needs ODDS_API_KEY). Only divisions with an unpriced
+    fixture kicking off within `window_days` are requested, each costing one credit per region.
+    """
+    key = os.getenv("ODDS_API_KEY")
+    if not key:
+        return {"skipped": "ODDS_API_KEY not set"}
+    window_days = window_days or int(os.getenv("ODDS_API_WINDOW_DAYS", "3"))
+    regions = os.getenv("ODDS_API_REGIONS", "eu")
+    now = _now_utc()
+    horizon = (now + dt.timedelta(days=window_days)).isoformat()
+    rows, unmatched, errors, queried = [], {}, [], []
+    remaining = None
+    with _client() as client, db.connect() as conn:
+        unpriced: Dict[str, List[Dict]] = {}
+        for f in db.load_fixtures_after(conn, now.isoformat()):
+            if f["avg_h"] is None and f["kickoff_utc"] <= horizon and f["div"] in the_odds_api.SPORT_KEYS:
+                unpriced.setdefault(f["div"], []).append(f)
+        for div, fixtures in unpriced.items():
+            try:
+                response = client.get(the_odds_api.odds_url(the_odds_api.SPORT_KEYS[div], regions),
+                                      params={"apiKey": key})
+                response.raise_for_status()
+                events = response.json()
+            except (httpx.HTTPError, ValueError) as e:
+                errors.append(f"{div}: {type(e).__name__}")  # never echo the URL: it carries the key
+                continue
+            queried.append(div)
+            parsed, missing = the_odds_api.parse_events(events, div, fixtures)
+            rows += parsed
+            if missing:
+                unmatched[div] = missing
+            left = response.headers.get("x-requests-remaining")
+            if left is not None:
+                remaining = float(left)
+                if remaining < ODDS_API_MIN_CREDITS_LEFT:
+                    errors.append(f"stopped early: {remaining:g} credits left")
+                    break
+        count = db.replace_odds_overlay(conn, rows, queried, now.isoformat())
+        db.set_meta(conn, "last_odds_api_refresh", now.isoformat())
+        db.set_meta(conn, "odds_api_unmatched_teams", json.dumps(unmatched))
+        if remaining is not None:
+            db.set_meta(conn, "odds_api_requests_remaining", str(remaining))
+    return {"priced_fixtures": count, "divisions_queried": queried, "unmatched_teams": unmatched,
+            "credits_left": remaining, "errors": errors}
+
+
 def _older_than(conn, key: str, delta: dt.timedelta) -> bool:
     last = db.get_meta(conn, key)
     return not last or _now_utc() - dt.datetime.fromisoformat(last) > delta
@@ -219,6 +269,8 @@ def refresh(min_interval_minutes: int = 10) -> Dict:
         fdorg_due = _older_than(conn, "last_fdorg_refresh", dt.timedelta(hours=FD_ORG_REFRESH_HOURS))
         national_due = _older_than(conn, "last_national_refresh", dt.timedelta(hours=NATIONAL_REFRESH_HOURS))
         apif_due = _older_than(conn, "last_api_football_refresh", dt.timedelta(hours=API_FOOTBALL_REFRESH_HOURS))
+        odds_due = _older_than(conn, "last_odds_api_refresh",
+                               dt.timedelta(hours=float(os.getenv("ODDS_API_REFRESH_HOURS", "8"))))
     if recent:
         return {"skipped": f"refreshed less than {min_interval_minutes} minutes ago"}
 
@@ -226,7 +278,8 @@ def refresh(min_interval_minutes: int = 10) -> Dict:
     if fdorg_due:
         result["football_data_org"] = ingest_fd_org_fixtures()
     for name, due, fn in (("national_history", national_due, ingest_national_history),
-                          ("api_football", apif_due, ingest_api_football_fixtures)):
+                          ("api_football", apif_due, ingest_api_football_fixtures),
+                          ("odds_api", odds_due, ingest_odds_api)):  # last: it prices what the others listed
         if due:
             try:
                 result[name] = fn()
@@ -264,6 +317,7 @@ def main() -> None:
     print(f"football-data.org: {ingest_fd_org_fixtures()}")
     print(f"National-team history: {ingest_national_history()}")
     print(f"API-Football: {ingest_api_football_fixtures()}")
+    print(f"The Odds API: {ingest_odds_api()}")
     with db.connect() as conn:
         print(db.data_status(conn))
 
