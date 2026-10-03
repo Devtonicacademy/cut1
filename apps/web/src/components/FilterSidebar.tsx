@@ -12,6 +12,8 @@ interface FilterSidebarProps {
   onDatePreset: (preset: DatePreset) => void;
   onCustomDate: (date: string) => void;
   onReset: () => void;
+  /** "fixed" pins the panel to the left edge on lg+ (a quarter of the screen); "inline" keeps it in the flow. */
+  layout?: "fixed" | "inline";
 }
 
 const DATE_OPTIONS: { value: DatePreset; label: string }[] = [
@@ -32,6 +34,7 @@ export default function FilterSidebar({
   onDatePreset,
   onCustomDate,
   onReset,
+  layout = "fixed",
 }: FilterSidebarProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [leaguesOpen, setLeaguesOpen] = useState(true);
@@ -143,7 +146,7 @@ export default function FilterSidebar({
   );
 
   return (
-    <div className="lg:w-64 lg:shrink-0">
+    <div className={layout === "inline" ? "lg:w-64 lg:shrink-0" : undefined}>
       {/* Mobile / tablet trigger */}
       <button
         onClick={() => setDrawerOpen(true)}
@@ -159,7 +162,11 @@ export default function FilterSidebar({
       {/* Desktop: sticky column */}
       <aside
         aria-label="Fixture filters"
-        className="sticky top-4 hidden rounded-panel border border-slate-200 bg-white p-4 shadow-sm dark:border-glass dark:bg-surface-glass dark:shadow-none dark:backdrop-blur-glass lg:block"
+        className={`hidden border-slate-200 bg-white shadow-sm dark:border-glass dark:bg-surface-glass dark:shadow-none dark:backdrop-blur-glass lg:block ${
+          layout === "inline"
+            ? "sticky top-4 self-start rounded-panel border p-4"
+            : "fixed inset-y-0 left-0 z-30 w-1/4 overflow-y-auto border-r p-6"
+        }`}
       >
         {renderPanel("side")}
       </aside>

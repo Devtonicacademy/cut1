@@ -80,3 +80,26 @@ h1, h2, h3, h4 { font-family: var(--font-space-grotesk), "Space Grotesk", sans-s
 
 /* Light-mode focus ring keeps the emerald accent */
 input:focus, select:focus, textarea:focus { outline: none; border-color: #10b981; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+
+/*
+ * Hero carousel. Each element owns exactly one animated property so they never fight over `transform`:
+ * the slide wrapper fades (opacity), the background layer zooms (transform), the copy rises (its own wrapper).
+ */
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+@keyframes hero-copy-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-kenburns {
+  animation: kenburns 7s linear forwards;
+  will-change: transform;
+}
+.hero-copy-in {
+  animation: hero-copy-in 700ms ease-out 150ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-kenburns, .hero-copy-in { animation: none; }
+}

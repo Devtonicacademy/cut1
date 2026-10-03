@@ -44,6 +44,7 @@ export default function SidebarDemo() {
 
       <div className="flex flex-col items-start gap-4 lg:flex-row lg:gap-6">
         <FilterSidebar
+          layout="inline"
           leagues={leagueCounts}
           filters={filters}
           activeCount={activeCount}
