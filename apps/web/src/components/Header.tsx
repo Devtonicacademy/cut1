@@ -31,7 +31,7 @@ export default function Header({
 }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <header className="sticky top-0 z-40 bg-white/95 dark:bg-surface-glass backdrop-blur-md border-b border-slate-200 dark:border-gray-800 transition-colors duration-150">
+    <header className="sticky top-0 z-40 hidden md:block bg-white/95 dark:bg-surface-glass backdrop-blur-md border-b border-slate-200 dark:border-gray-800 transition-colors duration-150">
       {/* Top Ticker: Live Lagos Market Insights */}
       <div className="bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-950/90 dark:via-emerald-900/60 dark:to-black px-3.5 py-1 text-[11px] sm:text-xs flex justify-between items-center text-white dark:text-emerald-300 font-medium">
         <div className="flex items-center gap-1.5 truncate">

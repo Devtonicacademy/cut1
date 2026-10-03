@@ -46,7 +46,7 @@ export default function MatchCard({ fixture, onSelectBet, isSelected }: MatchCar
   };
 
   return (
-    <GlassCard active={isSelected}>
+    <GlassCard active={isSelected} className="max-sm:rounded-none max-sm:border-x-0">
       {/* Top Banner: League & Kickoff Date/Time */}
       <div className="px-3.5 py-2.5 bg-slate-50 dark:bg-gray-900/70 border-b border-slate-200/80 dark:border-gray-800 flex flex-wrap justify-between items-center gap-2 text-xs">
         <div className="flex items-center gap-2">
