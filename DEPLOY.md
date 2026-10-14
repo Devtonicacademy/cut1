@@ -118,7 +118,7 @@ After that, **turn off the scheduler on your PC** (`LIVELYBORG_AUTO_REFRESH=0` i
 | Retrain now | `docker compose exec api python -m apps.api.app.jobs --retrain` |
 | Download backups | `docker compose cp api:/app/data/backups ./backups`, then `scp` them to your PC |
 
-- **Backups:** the API writes a daily database backup to `/app/data/backups` and keeps 14. They sit on the same disk, so **copy them off the server regularly**. The prediction ledger can't be recreated if lost.
+- **Backups:** the API writes a daily database backup to `/app/data/backups` and keeps the newest 3 locally. If `BACKUP_S3_BUCKET` (plus `BACKUP_S3_ENDPOINT`, `BACKUP_S3_ACCESS_KEY_ID`, `BACKUP_S3_SECRET_ACCESS_KEY`, `BACKUP_S3_REGION`) is set, each backup is also uploaded to that S3-compatible bucket as `backups/livelyborg-YYYYMMDD.db` (on Railway, a bucket service). Without it, **copy backups off the server regularly**. The prediction ledger can't be recreated if lost.
 - **Automatic jobs:** the scheduler runs every 3 hours and retrains weekly. Keep the API at **one worker**; the Dockerfile already does this.
 
 ## Before going public

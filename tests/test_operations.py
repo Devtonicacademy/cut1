@@ -35,9 +35,28 @@ def test_daily_backup_is_created_once_and_pruned(monkeypatch, tmp_path):
 
     backups = sorted((tmp_path / "backups").glob("livelyborg-*.db"))
     assert len(backups) == jobs.BACKUPS_KEPT
-    assert backups[0].name == "livelyborg-20260904.db"  # the oldest three were pruned
+    assert backups[0].name == "livelyborg-20260904.db"  # older ones pruned
     with db.connect(backups[-1]) as restored:
         assert db.get_meta(restored, "marker") == "kept"
+
+
+def test_backup_is_uploaded_when_bucket_configured_and_survives_upload_failure(monkeypatch, tmp_path):
+    monkeypatch.setenv("LIVELYBORG_DB_PATH", str(tmp_path / "live.db"))
+    uploaded = []
+    monkeypatch.setattr(jobs, "upload_backup", lambda path: uploaded.append(path.name) or True)
+    day = dt.datetime(2026, 9, 1, tzinfo=dt.timezone.utc)
+    assert jobs.backup(day) is not None
+    assert uploaded == ["livelyborg-20260901.db"]
+
+    def boom(path):
+        raise RuntimeError("bucket down")
+    monkeypatch.setattr(jobs, "upload_backup", boom)
+    assert jobs.backup(day + dt.timedelta(days=1)).exists()  # local copy kept
+
+
+def test_upload_is_skipped_without_bucket(monkeypatch, tmp_path):
+    monkeypatch.delenv("BACKUP_S3_BUCKET", raising=False)
+    assert jobs.upload_backup(tmp_path / "x.db") is False
 
 
 def test_bootstrap_does_nothing_offline():

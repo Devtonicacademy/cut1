@@ -22,7 +22,7 @@ from apps.api.app.tracking import ledger
 CYCLE_HOURS = float(os.getenv("LIVELYBORG_CYCLE_HOURS", "3"))
 RETRAIN_AFTER_DAYS = 7
 BOOTSTRAP_SEASONS = 10
-BACKUPS_KEPT = 14
+BACKUPS_KEPT = 3  # local copies; the off-volume copies in the bucket are the long-term safety net
 _lock = asyncio.Lock()
 
 
@@ -41,8 +41,26 @@ def bootstrap() -> Dict:
     return result
 
 
+def upload_backup(path: Path) -> bool:
+    """Copies a backup to the S3-compatible bucket (Railway bucket) when BACKUP_S3_* is configured."""
+    bucket = os.getenv("BACKUP_S3_BUCKET")
+    if not bucket:
+        return False
+    import boto3  # only needed when off-volume backups are configured
+    client = boto3.client(
+        "s3",
+        endpoint_url=os.getenv("BACKUP_S3_ENDPOINT"),
+        aws_access_key_id=os.getenv("BACKUP_S3_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("BACKUP_S3_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("BACKUP_S3_REGION") or "auto",
+    )
+    client.upload_file(str(path), bucket, f"backups/{path.name}")
+    return True
+
+
 def backup(now: dt.datetime) -> Optional[Path]:
-    """Daily copy of the database (safe while in use); keeps the newest BACKUPS_KEPT files."""
+    """Daily copy of the database (safe while in use); keeps the newest BACKUPS_KEPT files locally
+    and uploads each to the bucket if configured (an upload failure never loses the local copy)."""
     backup_dir = db.get_db_path().parent / "backups"
     target = backup_dir / f"livelyborg-{now:%Y%m%d}.db"
     if target.exists():
@@ -54,6 +72,11 @@ def backup(now: dt.datetime) -> Optional[Path]:
             conn.backup(dest)
         finally:
             dest.close()
+    try:
+        if upload_backup(target):
+            print(f"[scheduler] backup uploaded: {target.name}")
+    except Exception as e:
+        print(f"[scheduler] backup upload failed: {e}")
     for old in sorted(backup_dir.glob("livelyborg-*.db"))[:-BACKUPS_KEPT]:
         old.unlink()
     return target
